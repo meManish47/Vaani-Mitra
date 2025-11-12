@@ -4,12 +4,12 @@ import React from "react";
 const Hero = () => {
   return (
     <div>
-      <div class="bg-white pl-64 my-10 pb-6 sm:pb-4 lg:pb-4">
+      <div class="bg-white sm:pl-64 my-10 pb-6 sm:pb-4 lg:pb-4">
         <div class="mx-auto max-w-screen-2xl px-4 md:px-8">
-          <section className="mb-8 flex flex-col justify-between gap-6 sm:gap-10 md:mb-16 md:gap-16 lg:flex-row">
+          <section className="mb-8 flex flex-col  ps-20 sm:ps-0 justify-between gap-6 sm:gap-10 md:mb-16 md:gap-16 lg:flex-row">
             {/* content - start */}
-            <div class="flex flex-col justify-center sm:text-center lg:py-12 lg:text-left xl:w-5/12">
-              <p class=" font-semibold text-red-500 text-3xl ml-8 mb-4">
+            <div class="flex flex-col justify-center sm:text-center  lg:py-12 lg:text-left xl:w-5/12">
+              <p class=" font-semibold text-red-500 text-xl sm:text-3xl ml-2 sm:ml-8 mb-4">
                 Welcome to
               </p>
 
@@ -22,7 +22,10 @@ const Hero = () => {
                                 <path d="M96 0V47L48 94H0V47L48 0H96Z" />
                             </svg> */}
 
-                <h1 className="text-6xl ms-8"> Vaani Mitra </h1>
+                <h1 className="text-4xl sm:text-6xl ms-2 sm:ms-8">
+                  {" "}
+                  Vaani Mitra{" "}
+                </h1>
               </Link>
 
               <div class="flex flex-col gap-2.5 sm:flex-row sm:justify-center lg:justify-start">

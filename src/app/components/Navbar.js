@@ -5,7 +5,7 @@ const Navbar = () => {
   return (
     <aside
       id="default-sidebar"
-      className="fixed top-0 left-2 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0"
+      className="fixed top-0 left-2 z-40 sm:w-64 w-max h-screen "
       aria-label="Sidenav"
     >
       <div className="overflow-y-auto py-5 px-4 h-full bg-white border-r border-gray-200 dark:bg-white-800 dark:border-gray-700">
@@ -25,7 +25,7 @@ const Navbar = () => {
                 <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path>
                 <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path>
               </svg>
-              <span className="ml-5">Home</span>
+              <span className="ml-5 hidden sm:block">Home</span>
             </Link>
           </li>
           <li>
@@ -46,7 +46,7 @@ const Navbar = () => {
                 ></path>
               </svg>
 
-              <span className="ml-5">Characters</span>
+              <span className="ml-5  hidden sm:block">Characters</span>
             </Link>
           </li>
           <li>
@@ -64,7 +64,7 @@ const Navbar = () => {
                 <path d="M3 2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2zm1 3h10v2H4V5zm0 4h10v2H4V9zm0 4h10v2H4v-2zm13-9h-2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zm-1 10h-1V6h1v8zM15 2h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path>
               </svg>
 
-              <span className="ml-5">Leaderboard</span>
+              <span className="ml-5  hidden sm:block">Leaderboard</span>
             </Link>
           </li>
           <li>
@@ -82,7 +82,7 @@ const Navbar = () => {
                 <path d="M2 2a1 1 0 0 1 2 0v14a1 1 0 0 1-2 0V2zm4 2a1 1 0 0 1 2 0v10a1 1 0 0 1-2 0V4zm4-2a1 1 0 0 1 2 0v12a1 1 0 0 1-2 0V2zm4 4a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V6z"></path>
               </svg>
 
-              <span className="ml-5">Quiz</span>
+              <span className="ml-5  hidden sm:block">Quiz</span>
             </Link>
           </li>
           <li>
@@ -106,7 +106,7 @@ const Navbar = () => {
                     clip-rule="evenodd"
                   ></path>
                 </svg>
-                <span className="flex-1 ml-5 text-left whitespace-nowrap">
+                <span className="flex-1 ml-5 text-left whitespace-nowrap  hidden sm:block">
                   Profile
                 </span>
               </button>
@@ -134,7 +134,7 @@ const Navbar = () => {
                   ></path>
                 </svg>
 
-                <span className="flex-1 ml-5 text-left whitespace-nowrap">
+                <span className="flex-1 ml-5 text-left whitespace-nowrap  hidden sm:block">
                   Settings
                 </span>
               </button>

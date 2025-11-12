@@ -99,7 +99,7 @@ export default function SignupPage() {
                     </div>
                     <button onClick={onSignup} className="block rounded-lg bg-red-500 px-8 py-3 text-center text-sm font-semibold text-white outline-none ring-gray-300 transition duration-100 hover:bg-red-600 focus-visible:ring active:bg-red-600 md:text-base">{buttonDisabled ? "No SignUp" : "SignUp"}</button>
                     <div className="flex items-center justify-center p-4">
-                        <p className="text-center text-sm text-gray-500">Have an account? <a href="/login" className="text-red-500 transition duration-100 hover:text-red-600 active:text-red-700">Login</a></p>
+                        <p className="text-center text-sm text-gray-500">Have an account? <Link href="/login" className="text-red-500 transition duration-100 hover:text-red-600 active:text-red-700">Login</Link></p>
                     </div>
                 </div>
                 {/* </form> */}
