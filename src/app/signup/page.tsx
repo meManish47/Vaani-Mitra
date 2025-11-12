@@ -3,6 +3,7 @@ import Link from "next/link"
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios"
+import api from "@/lib/apiClient"
 export default function SignupPage() {
     const router = useRouter();
     const [user, setUser] = React.useState({
@@ -16,7 +17,7 @@ export default function SignupPage() {
     const onSignup = async () => {
         try {
             setLoading(true);
-            const response = await axios.post("/api/users/signup", user)
+            const response = await api.post("/api/users/signup", user)
             console.log("SignUp success", response.data);
             router.push("/login");
 
