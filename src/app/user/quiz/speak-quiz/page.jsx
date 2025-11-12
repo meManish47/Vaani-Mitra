@@ -21,7 +21,35 @@ const SpeakQuizPage = () => {
   const [listening, setListening] = useState(false);
 
   const { questions } = quiz;
-  
+  useEffect(() => {
+    // Initialize speech recognition when the component mounts
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'hi-IN';
+
+    recognition.onresult = function (event) {
+      var interim_transcript = '';
+      var final_transcript = '';
+
+      for (var i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final_transcript += event.results[i][0].transcript;
+          setUserAnswer(final_transcript);
+        } else {
+          interim_transcript += event.results[i][0].transcript;
+          setUserAnswer(interim_transcript);
+        }
+      }
+    };
+
+    return () => {
+      // Cleanup speech recognition when the component unmounts
+      if (recognition) {
+        recognition.stop();
+      }
+    };
+  }, []);
   // Check if questions[activeQuestion] is defined
   const currentQuestion = questions[activeQuestion];
   if (!currentQuestion) {
@@ -77,35 +105,7 @@ const SpeakQuizPage = () => {
     setQuestionCompleted(false);
   };
 
-  useEffect(() => {
-    // Initialize speech recognition when the component mounts
-    recognition = new webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'hi-IN';
-
-    recognition.onresult = function (event) {
-      var interim_transcript = '';
-      var final_transcript = '';
-
-      for (var i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final_transcript += event.results[i][0].transcript;
-          setUserAnswer(final_transcript);
-        } else {
-          interim_transcript += event.results[i][0].transcript;
-          setUserAnswer(interim_transcript);
-        }
-      }
-    };
-
-    return () => {
-      // Cleanup speech recognition when the component unmounts
-      if (recognition) {
-        recognition.stop();
-      }
-    };
-  }, []);
+  
 
   return (
     <div className='container'>

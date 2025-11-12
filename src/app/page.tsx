@@ -4,7 +4,7 @@ import Footer from './components/Footer'
 import Hero from './components/Hero'
 import Newsletter from './components/Newsletter'
 
-const page = () => {
+const Page = () => {
   return (
     <div>
       <Navbar />
@@ -15,5 +15,5 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
 

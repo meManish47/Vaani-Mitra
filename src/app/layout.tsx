@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LingoLeap",
-  description: "LingoLeap",
+  title: "Vaani Mitra",
+  description: "Misarticulation therapy",
 };
 
 export default function RootLayout({
@@ -20,4 +20,3 @@ export default function RootLayout({
     </html>
   );
 }
-

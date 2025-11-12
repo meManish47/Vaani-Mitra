@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">vaanimitra</string>
+    <string name="title_activity_main">vaanimitra</string>
+    <string name="package_name">com.vaanimitra.app</string>
+    <string name="custom_url_scheme">com.vaanimitra.app</string>
+</resources>

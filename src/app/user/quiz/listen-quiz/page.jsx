@@ -1,11 +1,9 @@
 'use client';
-import React, { useState } from 'react';
-import { quiz } from '../../../data/quiz/listenquizdata';
-import styles from './styles.css'
-import Link from 'next/link';
+import { useState } from 'react';
 import { MdVolumeUp } from 'react-icons/md';
+import { quiz } from '../../../data/quiz/listenquizdata';
 
-const page = () => {
+const Page = () => {
   const [selectedAnswerForPronunciation, setSelectedAnswerForPronunciation] = useState(null);
   const [pronouncingAnswer, setPronouncingAnswer] = useState(null);
   const [activeQuestion, setActiveQuestion] = useState(0);
@@ -151,7 +149,7 @@ const page = () => {
                     {activeQuestion === questions.length - 1 ? 'Finish' : 'Next'}
                   </button>
                 ) : (
-                  <button
+                  <button 
                     onClick={nextQuestion}
                     disabled
                     className="btn-disabled"
@@ -188,4 +186,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

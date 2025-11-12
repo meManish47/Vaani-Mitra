@@ -31,7 +31,7 @@ const Leaderboard = () => {
 
   const sortedUsers = [...users].sort((a, b) => b.experience - a.experience);
 
-  const rank = (index) => {
+  const rank = (index:number) => {
     switch (index) {
       case 0:
         return 'ranking-first-style';

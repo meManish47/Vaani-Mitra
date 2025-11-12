@@ -64,7 +64,7 @@ const Characters = () => {
         {/* Banner */}
         <div className="banner-container-style text-white text-shadow bg-gradient-to-r from-red-600 to-red-800 ">
           <div className="relative p-8 z-10">
-            <h2 className="banner-heading mb-3 ">Let's learn {activeTab}!</h2>
+            <h2 className="banner-heading mb-3 ">Let&apos;s learn {activeTab}!</h2>
             <p className="text-lg">{charBannerText[activeTab]}</p>
           </div>
           <div className="banner-bg-style bg-clouds" />
