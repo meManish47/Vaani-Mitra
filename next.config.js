@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // 👈 replaces "next export"
+  // output: 'export', // 👈 replaces "next export"
    distDir: 'out',
    trailingSlash: true,
   images: {

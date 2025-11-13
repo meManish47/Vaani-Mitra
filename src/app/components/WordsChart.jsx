@@ -1,19 +1,9 @@
-import React from 'react'
-import wordsData from '../data/words/wordsData';
+"use client";
+import React from "react";
+import wordsData from "../data/words/wordsData";
+import { speak } from "@/lib/speak";
 
 const WordsChart = () => {
-  const isBrowser = typeof window !== 'undefined';
-
-  const speechSynthesis = isBrowser ? window.speechSynthesis : null;
-
-  let audio = (textToSpeak) => {
-    if (speechSynthesis && textToSpeak) {
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = "hi-IN";
-      console.log(utterance);
-      speechSynthesis.speak(utterance);
-    }
-  }
 
   return (
     <section id="wordsChart">
@@ -25,7 +15,10 @@ const WordsChart = () => {
         {wordsData.common.map((char, index) => (
           <div
             key={`id-${index}`}
-            className={`chart-char-container ${char.word ? 'chart-filled-container' : 'chart-empty-container'}`} onClick={() => audio(char.word)}
+            className={`chart-char-container ${
+              char.word ? "chart-filled-container" : "chart-empty-container"
+            }`}
+            onClick={() => speak(char.word)}   // <-- Android + Web TTS
           >
             {char.word}
             <span className="chart-pronunciation">{char.pronunciation}</span>
@@ -34,37 +27,8 @@ const WordsChart = () => {
       </div>
 
       <hr className="chart-break" />
-
-      {/* <hr className="chart-break" />
-
-      <div className="chart-container grid-cols-5">
-        {lettersData.consonants.map((char, index) => (
-          <div
-            key={`id-${index}`}
-            className="chart-char-container chart-filled-container"
-          >
-            {char.character}
-            <span className="chart-pronunciation">{char.pronunciation}</span>
-          </div>
-        ))}
-      </div>
-
-      <hr className="chart-break" />
-
-      <div className="chart-container grid-cols-3">
-        {lettersData.dependingVowels.map((char, index) => (
-          <div
-            key={`id-${index}`}
-            className="chart-char-container chart-filled-container"
-          >
-            {char.character}
-            <span className="chart-pronunciation">{char.pronunciation}</span>
-          </div>
-        ))}
-      </div> */}
-
     </section>
-  )
-}
+  );
+};
 
-export default WordsChart
+export default WordsChart;

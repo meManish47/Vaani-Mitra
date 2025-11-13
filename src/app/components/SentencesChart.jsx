@@ -1,7 +1,7 @@
-import React from 'react'
-import SentencesLesson from './SentencesLesson';
-import sentencesData from '../data/sentences/sentencesData';
-
+"use client";
+import React from "react";
+import SentencesLesson from "./SentencesLesson";
+import sentencesData from "../data/sentences/sentencesData";
 const SentencesChart = () => {
   return (
     <section id="SentencesChart">
@@ -9,14 +9,11 @@ const SentencesChart = () => {
 
       <div className="flex flex-col gap-4">
         {sentencesData.map((lesson) => (
-          <SentencesLesson
-            key={lesson.url}
-            data={lesson}
-          />
+          <SentencesLesson key={lesson.url} data={lesson} />
         ))}
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default SentencesChart
+export default SentencesChart;
