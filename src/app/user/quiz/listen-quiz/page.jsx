@@ -3,6 +3,7 @@ import { useState } from "react";
 import { MdVolumeUp } from "react-icons/md";
 import { quiz } from "../../../data/quiz/listenquizdata";
 import Link from "next/link";
+import { speak } from "@/lib/speak";
 
 const Page = () => {
   const [selectedAnswerForPronunciation, setSelectedAnswerForPronunciation] =
@@ -34,7 +35,7 @@ const Page = () => {
   };
 
   const pronounceAnswer = (answer) => {
-    pronounceText(answer);
+    speak(answer);
     setSelectedAnswerForPronunciation(answer);
   };
 
@@ -45,10 +46,10 @@ const Page = () => {
 
       if (answer === correctAnswer) {
         setSelectedAnswer(true);
-        pronounceText(answer);
+        speak(answer);
       } else {
         setSelectedAnswer(false);
-        pronounceText("Is prashna ka sahi uttar hai " + correctAnswer);
+        speak("Is prashna ka sahi uttar hai " + correctAnswer);
       }
 
       setAnswerSelectedForCurrentQuestion(true);
