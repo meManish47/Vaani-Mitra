@@ -41,7 +41,7 @@ const Navbar = () => {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  fill-rule="evenodd"
+                  fillRule="evenodd"
                   d="M10 2a1 1 0 0 1 1 1v1h1a1 1 0 0 1 0 2h-1v2h1a1 1 0 0 1 0 2h-1v4h1a1 1 0 0 1 0 2h-1v1a4.992 4.992 0 0 1-9.56 1.5 1 1 0 0 1 1.92-.53A3 3 0 0 0 10 16a3 3 0 0 0 3-3v-1h-1a1 1 0 0 1 0-2h1V7h-1a1 1 0 0 1 0-2h1V5a2 2 0 0 0-2-2 1 1 0 0 1 0-2zM9 4v2H8a1 1 0 0 1 0-2h1zm1 12a1 1 0 0 1 0 2 3 3 0 0 0 0-6h-1v-4h1a1 1 0 0 1 0 2h-1v1a3 3 0 0 0-2.894 2.205A5 5 0 0 1 9 6a5 5 0 0 1 4.894 4.795A3 3 0 0 0 17 15v1h-1a1 1 0 0 1 0-2h1zM6 4a1 1 0 0 1 0 2H5V4h1z"
                 ></path>
               </svg>
@@ -101,9 +101,9 @@ const Navbar = () => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   ></path>
                 </svg>
                 <span className="flex-1 ml-5 text-left whitespace-nowrap  hidden sm:block">
@@ -128,9 +128,9 @@ const Navbar = () => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M2.5 10a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0zM10 12a2 2 0 100-4 2 2 0 000 4z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   ></path>
                 </svg>
 

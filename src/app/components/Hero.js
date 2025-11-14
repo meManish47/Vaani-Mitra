@@ -5,12 +5,12 @@ import React from "react";
 const Hero = () => {
   return (
     <div>
-      <div class="bg-white sm:pl-64 my-10 pb-6 sm:pb-4 lg:pb-4">
-        <div class="mx-auto max-w-screen-2xl px-4 md:px-8">
+      <div className="bg-white sm:pl-64 my-10 pb-6 sm:pb-4 lg:pb-4">
+        <div className="mx-auto max-w-screen-2xl px-4 md:px-8">
           <section className="mb-8 flex flex-col  ps-20 sm:ps-0 justify-between gap-6 sm:gap-10 md:mb-16 md:gap-16 lg:flex-row">
             {/* content - start */}
-            <div class="flex flex-col justify-center sm:text-center  lg:py-12 lg:text-left xl:w-5/12">
-              <p class=" font-semibold text-red-500 text-xl sm:text-3xl ml-2 sm:ml-8 mb-4">
+            <div className="flex flex-col justify-center sm:text-center  lg:py-12 lg:text-left xl:w-5/12">
+              <p className=" font-semibold text-red-500 text-xl sm:text-3xl ml-2 sm:ml-8 mb-4">
                 Welcome to
               </p>
 
@@ -29,17 +29,17 @@ const Hero = () => {
                 </h1>
               </Link>
 
-              <div class="flex flex-col gap-2.5 sm:flex-row sm:justify-center lg:justify-start">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-center lg:justify-start">
                 <Link
                   href="/signup"
-                  class="inline-block rounded-lg bg-red-500 px-8 py-3 text-center text-sm font-semibold text-white outline-none ring-red-300 transition duration-100 hover:bg-red-600 focus-visible:ring active:bg-red-700 md:text-base mt-4"
+                  className="inline-block rounded-lg bg-red-500 px-8 py-3 text-center text-sm font-semibold text-white outline-none ring-red-300 transition duration-100 hover:bg-red-600 focus-visible:ring active:bg-red-700 md:text-base mt-4"
                 >
                   Start now
                 </Link>
 
                 <Link
                   href="/profile"
-                  class="inline-block rounded-lg bg-gray-200 px-8 py-3 text-center text-sm font-semibold text-gray-500 outline-none ring-red-300 transition duration-100 hover:bg-gray-300 focus-visible:ring active:text-gray-700 md:text-base mt-4"
+                  className="inline-block rounded-lg bg-gray-200 px-8 py-3 text-center text-sm font-semibold text-gray-500 outline-none ring-red-300 transition duration-100 hover:bg-gray-300 focus-visible:ring active:text-gray-700 md:text-base mt-4"
                 >
                   See profile
                 </Link>
@@ -48,12 +48,14 @@ const Hero = () => {
             {/* content - end */}
 
             {/* image - start */}
-            <div class="h-54 overflow-hidden rounded-lg bg-gray-100 shadow-lg lg:h-98 xl:w-5/12">
+            <div className="h-54 overflow-hidden rounded-lg bg-gray-100 shadow-lg lg:h-98 xl:w-5/12">
               <Image
                 src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/social-proof/table-professor.svg"
                 loading="lazy"
                 alt="Photo by Fakurian Design"
-                class="h-full w-full object-cover object-center"
+                className="h-full w-full object-cover object-center"
+                height={100}
+                width={100}
               />
             </div>
             {/* image - end */}

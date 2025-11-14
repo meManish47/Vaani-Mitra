@@ -1,10 +1,8 @@
 "use client";
-import Link from "next/link";
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
 import api from "@/lib/apiClient";
-import User from "@/models/userModel";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 export default function LoginPage() {
   const router = useRouter();
   const [user, setUser] = React.useState({
@@ -17,12 +15,12 @@ export default function LoginPage() {
   const onLogin = async () => {
     try {
       setLoading(true);
-      const response = await axios.post("/api/users/login", user);
+      const response = await api.post("/api/users/login", user);
       console.log("Login success", response.data);
 
       router.push("/profile");
     } catch (error: any) {
-      console.log("Login failed", error.message);
+      alert("Login failed");
     } finally {
       setLoading(false);
     }
@@ -70,6 +68,9 @@ export default function LoginPage() {
 
         {/* <form className="mx-auto max-w-lg rounded-lg border"> */}
         <div className="flex flex-col gap-4 p-4 md:p-8 border border-red-400">
+          <Link href={"/"} className="text-red-500 w-max underline">
+            Home
+          </Link>
           <h2 className="mb-4 text-center text-2xl font-bold text-black md:mb-8 lg:text-3xl">
             {loading ? "Processing" : "Login"}
           </h2>

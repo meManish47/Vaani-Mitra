@@ -4,7 +4,7 @@ import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import { useRouter } from "next/navigation";
 import api from "@/lib/apiClient";
-import { getApiBaseUrl } from "@/lib/getApiBaseUrl"; 
+import { getApiBaseUrl } from "@/lib/getApiBaseUrl";
 import Image from "next/image";
 
 export default function ProfilePage() {
@@ -15,16 +15,12 @@ export default function ProfilePage() {
   useEffect(() => {
     async function setUser() {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/users/current-user`, {
-          credentials: "include",
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch user");
-
-        const data = await res.json();
-        setUsername(data.user.username || "");
+        const res = await api.get("/api/users/current-user");
+        const data = res.data;
+        setUsername(data.user.username);
       } catch (err) {
         console.error("Error fetching user:", err);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -41,7 +37,7 @@ export default function ProfilePage() {
       console.error(error.message);
     }
   };
-
+  console.log("---__---", username);
   return (
     <div>
       <Navbar />
@@ -59,6 +55,8 @@ export default function ProfilePage() {
             className="w-36 h-36 mx-auto mb-5 object-cover object-center rounded-full"
             alt="profile"
             src="/download.png"
+            width={100}
+            height={100}
           />
           <div className="mx-auto max-w-screen-xl px-4 md:px-8">
             <div className="mb-8 md:mb-12">
@@ -79,6 +77,8 @@ export default function ProfilePage() {
                     className="inline-flex h-8 w-8 pb-1"
                     src="https://cdn-icons-png.flaticon.com/128/4325/4325956.png"
                     alt="Streak"
+                    height={100}
+                    width={100}
                   />
                 </div>
                 <div className="text-sm font-semibold sm:text-base">

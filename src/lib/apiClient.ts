@@ -1,22 +1,32 @@
 import axios from "axios";
+import { Capacitor } from "@capacitor/core";
 
-const isNative = () => {
-  if (typeof window === "undefined") return false;
-  try {
-    // Capacitor injected at runtime only on native builds
-    return !!(window as any).Capacitor?.isNativePlatform?.();
-  } catch {
-    return false;
+function getBaseUrl() {
+  // 1️⃣ If running inside Android/iOS (Capacitor Native)
+  if (Capacitor.isNativePlatform()) {
+    return "https://vaani-mitra-ruddy.vercel.app"; // production backend
   }
-};
 
-const API_BASE_URL = isNative()
-  ? "https://vaani-mitra-ruddy.vercel.app" // ✅ no trailing slash
-  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"; // ✅ fallback for dev web
+  // 2️⃣ If running in browser (dev or prod)
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin;
+
+    // Dev mode → localhost:3000
+    if (origin.includes("localhost")) {
+      return "http://localhost:3000";
+    }
+
+    // Production website (Vercel)
+    return "https://vaani-mitra-ruddy.vercel.app";
+  }
+
+  // 3️⃣ Default fallback (SSR)
+  return "https://vaani-mitra-ruddy.vercel.app";
+}
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true, // ✅ keep cookies/session
+  baseURL: getBaseUrl(),
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
