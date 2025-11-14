@@ -43,12 +43,21 @@ export default function ProfilePage() {
       <section className="text-gray-600 ml-20 sm:ml-64 my-10 body-font">
         <div className="container px-5 mx-auto">
           <div className="flex flex-col items-end">
-            <button
-              className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
-              onClick={logout}
-            >
-              Logout
-            </button>
+            {username ? (
+              <button
+                className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
+                onClick={logout}
+              >
+                Logout
+              </button>
+            ) : (
+              <button
+                className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
+                onClick={() => router.push("/login")}
+              >
+                Login
+              </button>
+            )}
           </div>
           <Image
             className="w-36 h-36 mx-auto mb-5 object-cover object-center rounded-full"
@@ -60,12 +69,18 @@ export default function ProfilePage() {
           <div className="mx-auto max-w-screen-xl px-4 md:px-8">
             <div className="mb-8 md:mb-12">
               <h2 className="mb-4 text-center text-2xl font-bold text-gray-800 md:mb-6 lg:text-3xl">
-                {loading ? "Loading..." : username}
+                {loading
+                  ? "Loading..."
+                  : username
+                  ? username
+                  : "Please Login first!"}
               </h2>
-              <p className="mx-auto max-w-screen-md text-center text-gray-500 md:text-lg">
-                <span className="text-red-500 font-bold">Passionate</span> about
-                learning new languages and exploring new cultures.
-              </p>
+              {username && (
+                <p className="mx-auto max-w-screen-md text-center text-gray-500 md:text-lg">
+                  <span className="text-red-500 font-bold">Passionate</span>{" "}
+                  about learning new languages and exploring new cultures.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 ml-72 md:grid-cols-3 lg:gap-8">
