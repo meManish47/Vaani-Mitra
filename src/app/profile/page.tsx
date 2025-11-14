@@ -20,7 +20,7 @@ export default function ProfilePage() {
         setUsername(data.user.username);
       } catch (err) {
         console.error("Error fetching user:", err);
-        router.push("/login");
+        // router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -37,15 +37,14 @@ export default function ProfilePage() {
       console.error(error.message);
     }
   };
-  console.log("---__---", username);
   return (
     <div>
       <Navbar />
-      <section className="text-gray-600 ml-64 my-10 body-font">
+      <section className="text-gray-600 ml-20 sm:ml-64 my-10 body-font">
         <div className="container px-5 mx-auto">
           <div className="flex flex-col items-end">
             <button
-              className="bg-red-500 mt-4 hover:bg-red-600 text-white font-bold py-3 px-7 rounded"
+              className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
               onClick={logout}
             >
               Logout

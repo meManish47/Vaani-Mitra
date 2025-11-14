@@ -34,7 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "out/types/**/*.ts"
-  ],
+, "src/app/user/quiz/listen-quiz/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]
