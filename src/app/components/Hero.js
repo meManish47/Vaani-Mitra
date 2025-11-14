@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -48,7 +49,7 @@ const Hero = () => {
 
             {/* image - start */}
             <div class="h-54 overflow-hidden rounded-lg bg-gray-100 shadow-lg lg:h-98 xl:w-5/12">
-              <img
+              <Image
                 src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/social-proof/table-professor.svg"
                 loading="lazy"
                 alt="Photo by Fakurian Design"

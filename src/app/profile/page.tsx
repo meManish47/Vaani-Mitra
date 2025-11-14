@@ -5,6 +5,7 @@ import Footer from "@/app/components/Footer";
 import { useRouter } from "next/navigation";
 import api from "@/lib/apiClient";
 import { getApiBaseUrl } from "@/lib/getApiBaseUrl"; 
+import Image from "next/image";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function ProfilePage() {
               Logout
             </button>
           </div>
-          <img
+          <Image
             className="w-36 h-36 mx-auto mb-5 object-cover object-center rounded-full"
             alt="profile"
             src="/download.png"
@@ -74,7 +75,7 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center justify-center rounded-lg bg-gray-100 px-8 lg:p-8">
                 <div className="text-xl font-bold text-red-500 sm:text-2xl md:text-3xl">
                   1
-                  <img
+                  <Image
                     className="inline-flex h-8 w-8 pb-1"
                     src="https://cdn-icons-png.flaticon.com/128/4325/4325956.png"
                     alt="Streak"
