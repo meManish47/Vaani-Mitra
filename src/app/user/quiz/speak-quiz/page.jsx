@@ -3,21 +3,23 @@
 import React, { useState } from "react";
 import { quiz } from "../../../data/quiz/speakquizdata";
 import { MdMic } from "react-icons/md";
-import { startListening, stopListening } from "@/lib/listen"; // ← IMPORT YOUR FILE
+import { startListening, stopListening } from "@/lib/listen";
+import Link from "next/link";
 
 const SpeakQuizPage = () => {
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [result, setResult] = useState({
-    score: 0,
-    correctAnswers: 0,
-    wrongAnswers: 0,
-  });
 
   const [userAnswer, setUserAnswer] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [questionCompleted, setQuestionCompleted] = useState(false);
   const [listening, setListening] = useState(false);
+
+  const [result, setResult] = useState({
+    score: 0,
+    correctAnswers: 0,
+    wrongAnswers: 0,
+  });
 
   const { questions } = quiz;
   const currentQuestion = questions[activeQuestion];
@@ -27,11 +29,11 @@ const SpeakQuizPage = () => {
   const { question, correctAnswer: correctAns } = currentQuestion;
 
   // -------------------------
-  // Recording Start / Stop
+  // Start / Stop Recording
   // -------------------------
   const startRecording = () => {
     setListening(true);
-    startListening((text) => setUserAnswer(text)); // ← updates textarea
+    startListening((text) => setUserAnswer(text));
   };
 
   const stopRecordingHandler = () => {
@@ -41,7 +43,7 @@ const SpeakQuizPage = () => {
   };
 
   // -------------------------
-  // Check Answer Logic
+  // Check Answer
   // -------------------------
   const checkAnswer = () => {
     const isCorrect =
@@ -62,7 +64,9 @@ const SpeakQuizPage = () => {
     }
   };
 
-  // Go to next question
+  // -------------------------
+  // Next Question
+  // -------------------------
   const nextQuestion = () => {
     setActiveQuestion((prev) => prev + 1);
     setCorrectAnswer("");
@@ -70,84 +74,128 @@ const SpeakQuizPage = () => {
     setQuestionCompleted(false);
   };
 
-  // -------------------------
-  // UI Render
-  // -------------------------
   return (
-    <div className="container">
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-xl">
       {!showResult ? (
         <div>
-          <h2>
-            Question: {activeQuestion + 1}
-            <span>/{questions.length}</span>
+          {/* Question Header */}
+          <h2 className="text-2xl font-bold mb-4">
+            Question {activeQuestion + 1}{" "}
+            <span className="text-gray-500 text-lg">/ {questions.length}</span>
           </h2>
 
-          <div className="quiz-container">
-            <h3>{question}</h3>
+          {/* Question Box */}
+          <div className="bg-gray-100 p-6 rounded-xl shadow">
+            <h3 className="text-2xl font-semibold mb-4">{question}</h3>
 
+            {/* Feedback Message */}
             {questionCompleted && (
               <div
-                className={`feedback ${
+                className={`mt-3 p-3 text-lg font-semibold rounded-lg ${
                   correctAnswer.toLowerCase() === userAnswer.toLowerCase()
-                    ? "correct"
-                    : "wrong"
+                    ? "bg-green-200 text-green-700"
+                    : "bg-red-200 text-red-700"
                 }`}
               >
                 {correctAnswer.toLowerCase() === userAnswer.toLowerCase()
                   ? "Correct!"
-                  : `Wrong! The correct answer is: ${correctAnswer}`}
+                  : `Wrong! Correct Answer: ${correctAnswer}`}
               </div>
             )}
 
-            <div className="answer-input">
+            {/* Answer Input && Mic Button */}
+            <div className="mt-5">
               <textarea
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
                 placeholder="Speak your answer..."
                 disabled={listening}
+                className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
               />
 
-              <div className="action-buttons">
-                <MdMic
-                  className={`h-6 w-6 ${listening ? "recording" : ""}`}
+              <div className="flex justify-center mt-4">
+                <button
                   onClick={listening ? stopRecordingHandler : startRecording}
-                />
+                  className={`p-4 rounded-full shadow-lg transition ${
+                    listening
+                      ? "bg-red-500 text-white animate-pulse"
+                      : "bg-green-500 text-white hover:bg-green-600"
+                  }`}
+                >
+                  <MdMic className="h-8 w-8" />
+                </button>
               </div>
             </div>
 
+            {/* Next Button */}
             <button
               onClick={nextQuestion}
               disabled={!questionCompleted}
-              className={`btn ${!questionCompleted ? "btn-disabled" : ""}`}
+              className={`mt-6 w-full py-3 text-lg font-bold rounded-lg transition ${
+                questionCompleted
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-red-300 text-white cursor-not-allowed"
+              }`}
             >
               {activeQuestion === questions.length - 1 ? "Finish" : "Next"}
             </button>
           </div>
         </div>
       ) : (
-        <div className="quiz-container">
-          <h3>Results</h3>
-          <h3>Overall {(result.score / (5 * questions.length)) * 100}%</h3>
+        /* ----------------------
+            RESULTS SECTION
+        ------------------------ */
+        <div className="bg-gray-100 p-6 rounded-xl shadow">
+          <h3 className="text-3xl font-bold mb-4">Results</h3>
 
-          <p>
-            Total Questions: <span>{questions.length}</span>
-          </p>
-          <p>
-            Total Score: <span>{result.score}</span>
-          </p>
-          <p>
-            Correct Answers: <span>{result.correctAnswers}</span>
-          </p>
-          <p>
-            Wrong Answers: <span>{result.wrongAnswers}</span>
+          <p className="text-xl mb-2">
+            Overall Score:{" "}
+            <span className="font-bold">
+              {Math.round((result.score / (questions.length * 5)) * 100)}%
+            </span>
           </p>
 
-          <button onClick={() => window.location.reload()}>Start +10XP</button>
-          <button onClick={() => (window.location.href = "/user/leaderboard")}>
+          <p className="text-lg">
+            Total Questions:{" "}
+            <span className="font-semibold">{questions.length}</span>
+          </p>
+
+          <p className="text-lg">
+            Total Score: <span className="font-semibold">{result.score}</span>
+          </p>
+
+          <p className="text-lg">
+            Correct Answers:{" "}
+            <span className="text-green-600 font-semibold">
+              {result.correctAnswers}
+            </span>
+          </p>
+
+          <p className="text-lg">
+            Wrong Answers:{" "}
+            <span className="text-red-600 font-semibold">
+              {result.wrongAnswers}
+            </span>
+          </p>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-red-500 w-full py-3 text-white font-bold rounded-lg hover:bg-red-600"
+          >
+            Start +10XP
+          </button>
+
+          <button
+            onClick={() => (window.location.href = "/user/leaderboard")}
+            className="mt-4 bg-gray-700 w-full py-3 text-white font-bold rounded-lg hover:bg-gray-800"
+          >
             View Leaderboard
           </button>
         </div>
       )}
+      <Link href={"/"} className="text-red-500 underline mt-2">
+        Home
+      </Link>
     </div>
   );
 };
