@@ -22,12 +22,12 @@ const Footer = () => {
                 Characters
               </Link>
               {/* <a href="/user/dashboard" className="text-gray-500 transition duration-100 hover:text-red-500 active:text-red-600">Dashboard</a> */}
-              <Link
+              {/* <Link
                 href="/user/leaderboard"
                 className="text-gray-500 transition duration-100 hover:text-red-500 active:text-red-600"
               >
                 Leaderboard
-              </Link>
+              </Link> */}
               <Link
                 href="/profile"
                 className="text-gray-500 transition duration-100 hover:text-red-500 active:text-red-600"

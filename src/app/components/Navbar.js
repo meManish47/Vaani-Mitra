@@ -49,7 +49,7 @@ const Navbar = () => {
               <span className="ml-5  hidden sm:block">Characters</span>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               href="/user/leaderboard"
               className="flex items-center p-3 font-bold text-xl text-black-900 rounded-lg dark:text-black hover:bg-red-100 dark:hover:bg-red-500 group"
@@ -66,7 +66,7 @@ const Navbar = () => {
 
               <span className="ml-5  hidden sm:block">Leaderboard</span>
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               href="/user/startquiz"
