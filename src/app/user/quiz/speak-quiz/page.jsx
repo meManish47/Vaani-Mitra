@@ -3,84 +3,8 @@
 import React, { useState } from "react";
 import { quiz } from "../../../data/quiz/speakquizdata";
 import { MdMic } from "react-icons/md";
-import { Capacitor } from "@capacitor/core";
+import { startListening, stopListening } from "@/lib/listen"; // ← IMPORT YOUR FILE
 
-let webRecognition = null;
-
-// -----------------------------
-// Cross-platform Speech Recognition
-// -----------------------------
-async function startListening(onText) {
-  const isNative = Capacitor.isNativePlatform();
-
-  // -------------------------
-  // Native (Android/iOS)
-  // -------------------------
-  if (isNative) {
-    try {
-      const { SpeechRecognition } = await import(
-        "@capacitor-community/speech-recognition"
-      );
-
-      await SpeechRecognition.requestPermission();
-
-      SpeechRecognition.start({
-        language: "hi-IN",
-        partialResults: true,
-        maxResults: 1,
-      });
-
-      SpeechRecognition.addListener("speechResults", (data) => {
-        if (data?.matches && data.matches.length > 0) {
-          onText(data.matches[0]);
-        }
-      });
-    } catch (e) {
-      console.error("Native speech recognition error:", e);
-    }
-    return;
-  }
-
-  // -------------------------
-  // Web Browser Fallback
-  // -------------------------
-  if (typeof window !== "undefined") {
-    const Speech =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!Speech) {
-      alert("Your browser does not support speech recognition.");
-      return;
-    }
-
-    webRecognition = new Speech();
-    webRecognition.continuous = true;
-    webRecognition.interimResults = true;
-    webRecognition.lang = "hi-IN";
-
-    webRecognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      onText(transcript);
-    };
-
-    webRecognition.start();
-  }
-}
-
-function stopListening() {
-  if (webRecognition) {
-    webRecognition.stop();
-  }
-
-  // Native plugin auto-stops on its own
-}
-
-// -----------------------------
-// MAIN QUIZ PAGE COMPONENT
-// -----------------------------
 const SpeakQuizPage = () => {
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -89,6 +13,7 @@ const SpeakQuizPage = () => {
     correctAnswers: 0,
     wrongAnswers: 0,
   });
+
   const [userAnswer, setUserAnswer] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [questionCompleted, setQuestionCompleted] = useState(false);
@@ -101,12 +26,12 @@ const SpeakQuizPage = () => {
 
   const { question, correctAnswer: correctAns } = currentQuestion;
 
-  // -----------------------------
-  // Recording handlers
-  // -----------------------------
+  // -------------------------
+  // Recording Start / Stop
+  // -------------------------
   const startRecording = () => {
     setListening(true);
-    startListening((text) => setUserAnswer(text));
+    startListening((text) => setUserAnswer(text)); // ← updates textarea
   };
 
   const stopRecordingHandler = () => {
@@ -115,11 +40,12 @@ const SpeakQuizPage = () => {
     checkAnswer();
   };
 
-  // -----------------------------
-  // Quiz Logic
-  // -----------------------------
+  // -------------------------
+  // Check Answer Logic
+  // -------------------------
   const checkAnswer = () => {
-    const isCorrect = userAnswer.trim().toLowerCase() === correctAns.toLowerCase();
+    const isCorrect =
+      userAnswer.trim().toLowerCase() === correctAns.trim().toLowerCase();
 
     setResult((prev) => ({
       ...prev,
@@ -136,6 +62,7 @@ const SpeakQuizPage = () => {
     }
   };
 
+  // Go to next question
   const nextQuestion = () => {
     setActiveQuestion((prev) => prev + 1);
     setCorrectAnswer("");
@@ -143,9 +70,9 @@ const SpeakQuizPage = () => {
     setQuestionCompleted(false);
   };
 
-  // -----------------------------
-  // UI
-  // -----------------------------
+  // -------------------------
+  // UI Render
+  // -------------------------
   return (
     <div className="container">
       {!showResult ? (
