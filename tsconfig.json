@@ -34,7 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "out/types/**/*.ts"
-, "src/app/user/quiz/listen-quiz/page.jsx"  ],
+, "src/app/user/quiz/listen-quiz/page.jsx", "src/app/components/characters/HindiWordCard"  ],
   "exclude": [
     "node_modules"
   ]

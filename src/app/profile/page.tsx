@@ -1,115 +1,187 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Star, Zap, Trophy, Target, BookOpen } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
-import { useRouter } from "next/navigation";
 import api from "@/lib/apiClient";
-import { getApiBaseUrl } from "@/lib/getApiBaseUrl";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+const AVATARS = [
+  { id: "bunny", emoji: "🐰", name: "Bunny" },
+  { id: "bear", emoji: "🐻", name: "Bear" },
+  { id: "cat", emoji: "🐱", name: "Kitty" },
+  { id: "dog", emoji: "🐶", name: "Puppy" },
+  { id: "unicorn", emoji: "🦄", name: "Unicorn" },
+  { id: "panda", emoji: "🐼", name: "Panda" },
+  { id: "lion", emoji: "🦁", name: "Lion" },
+  { id: "owl", emoji: "🦉", name: "Owl" },
+];
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedAvatar, setSelectedAvatar] = useState("bunny");
+
+  const stats = [
+    {
+      icon: Star,
+      label: "Total Stars",
+      value: 5,
+      color: "text-yellow-500",
+      bg: "bg-yellow-50",
+    },
+    {
+      icon: Zap,
+      label: "Day Streak",
+      value: 1,
+      color: "text-orange-500",
+      bg: "bg-orange-50",
+    },
+    {
+      icon: Trophy,
+      label: "Level",
+      value: 1,
+      color: "text-purple-500",
+      bg: "bg-purple-50",
+    },
+    {
+      icon: Target,
+      label: "XP Points",
+      value: 100,
+      color: "text-green-500",
+      bg: "bg-green-50",
+    },
+  ];
 
   useEffect(() => {
-    async function setUser() {
+    async function fetchUser() {
       try {
         const res = await api.get("/api/users/current-user");
-        const data = res.data;
-        setUsername(data.user.username);
+        setUser(res.data.user);
       } catch (err) {
         console.error("Error fetching user:", err);
-        // router.push("/login");
       } finally {
         setLoading(false);
       }
     }
-
-    setUser();
+    fetchUser();
   }, []);
 
   const logout = async () => {
     try {
       await api.get("/api/users/logout");
       router.push("/");
-    } catch (error: any) {
-      console.error(error.message);
+    } catch (e) {
+      console.error(e);
     }
   };
+
+  const currentAvatar =
+    AVATARS.find((a) => a.id === selectedAvatar) || AVATARS[0];
+
   return (
     <div>
-      <Navbar />
-      <section className="text-gray-600 ml-20 sm:ml-64 my-10 body-font">
-        <div className="container px-5 mx-auto">
-          <div className="flex flex-col items-end">
-            {username ? (
-              <button
-                className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
-                onClick={logout}
+      
+
+      <div className="max-w-4xl mx-auto pt-10 pb-20 px-4">
+        {/* Profile Header */}
+        <motion.div
+          className="bg-gradient-to-br from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-6 md:p-8 mb-8 shadow-lg"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            {/* Avatar */}
+            <div className="relative">
+              <motion.div
+                className="w-32 h-32 bg-white rounded-full shadow-xl flex items-center justify-center text-6xl border-4 border-white"
+                whileHover={{ scale: 1.05 }}
               >
-                Logout
-              </button>
-            ) : (
-              <button
-                className="bg-red-500 sm:mt-4 hover:bg-red-600 text-white text-xs sm:font-bold py-3 px-2 sm:px-7 rounded"
-                onClick={() => router.push("/login")}
-              >
-                Login
-              </button>
-            )}
-          </div>
-          <Image
-            className="w-36 h-36 mx-auto mb-5 object-cover object-center rounded-full"
-            alt="profile"
-            src="/download.png"
-            width={100}
-            height={100}
-          />
-          <div className="mx-auto max-w-screen-xl px-4 md:px-8">
-            <div className="mb-8 md:mb-12">
-              <h2 className="mb-4 text-center text-2xl font-bold text-gray-800 md:mb-6 lg:text-3xl">
+                {currentAvatar.emoji}
+              </motion.div>
+
+              <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                {AVATARS.map((avatar) => (
+                  <motion.button
+                    key={avatar.id}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-xl 
+                      ${
+                        selectedAvatar === avatar.id
+                          ? "bg-purple-500 text-white ring-2 ring-purple-300"
+                          : "bg-white hover:bg-purple-100"
+                      }`}
+                    onClick={() => setSelectedAvatar(avatar.id)}
+                    whileTap={{ scale: 0.85 }}
+                  >
+                    {avatar.emoji}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
                 {loading
                   ? "Loading..."
-                  : username
-                  ? username
-                  : "Please Login first!"}
-              </h2>
-              {username && (
-                <p className="mx-auto max-w-screen-md text-center text-gray-500 md:text-lg">
-                  <span className="text-red-500 font-bold">Passionate</span>{" "}
-                  about learning new languages and exploring new cultures.
-                </p>
+                  : user?.username || "Guest User"}
+              </h1>
+              <p className="text-gray-600 mb-4">
+                Level {stats[2].value} Speaker • {stats[3].value} XP
+              </p>
+
+              {user ? (
+                <Button
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={logout}
+                >
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                  onClick={() => router.push("/login")}
+                >
+                  Login
+                </Button>
               )}
             </div>
-
-            <div className="grid grid-cols-2 gap-4 ml-72 md:grid-cols-3 lg:gap-8">
-              <div className="flex flex-col items-center justify-center rounded-lg bg-gray-100 px-8 lg:p-8">
-                <div className="text-xl font-bold text-red-500 sm:text-2xl md:text-3xl">
-                  1
-                  <Image
-                    className="inline-flex h-8 w-8 pb-1"
-                    src="https://cdn-icons-png.flaticon.com/128/4325/4325956.png"
-                    alt="Streak"
-                    height={100}
-                    width={100}
-                  />
-                </div>
-                <div className="text-sm font-semibold sm:text-base">
-                  Streaks
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center justify-center rounded-lg bg-gray-100 p-4 md:p-8">
-                <div className="text-xl font-bold text-red-500 sm:text-2xl md:text-2xl">
-                  100 XP
-                </div>
-                <div className="text-sm font-semibold sm:text-base">Points</div>
-              </div>
-            </div>
           </div>
+        </motion.div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              className={`${s.bg} rounded-2xl p-4 text-center shadow border`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <s.icon className={`w-8 h-8 mx-auto mb-2 ${s.color}`} />
+              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
+              <p className="text-sm text-gray-600">{s.label}</p>
+            </motion.div>
+          ))}
         </div>
-      </section>
+
+        {/* Placeholder for future progress */}
+        <motion.div
+          className="bg-white rounded-3xl p-6 shadow-md text-center text-gray-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          🚀 More profile features coming soon!
+        </motion.div>
+      </div>
+
       <Footer />
     </div>
   );

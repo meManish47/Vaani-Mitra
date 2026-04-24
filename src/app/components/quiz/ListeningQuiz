@@ -1,0 +1,226 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, Check, X, ArrowRight, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import StarReward from '@/components/shared/StarReward';
+
+const QUIZ_QUESTIONS = [
+  { word: 'Apple', options: ['Apple', 'Orange', 'Grape', 'Banana'], correct: 0 },
+  { word: 'Dog', options: ['Cat', 'Dog', 'Bird', 'Fish'], correct: 1 },
+  { word: 'Star', options: ['Moon', 'Sun', 'Star', 'Cloud'], correct: 2 },
+  { word: 'Rainbow', options: ['Rainbow', 'Rain', 'Sun', 'Snow'], correct: 0 },
+  { word: 'Butterfly', options: ['Bird', 'Bee', 'Bug', 'Butterfly'], correct: 3 },
+];
+
+export default function ListeningQuiz({ onComplete, onBack }) {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
+
+  const question = QUIZ_QUESTIONS[currentQuestion];
+
+  const playWord = () => {
+    setHasPlayed(true);
+    const utterance = new SpeechSynthesisUtterance(question.word);
+    utterance.rate = 0.6;
+    speechSynthesis.speak(utterance);
+  };
+
+  const handleAnswer = (index) => {
+    if (selectedAnswer !== null) return;
+    
+    setSelectedAnswer(index);
+    const correct = index === question.correct;
+    setIsCorrect(correct);
+    
+    if (correct) {
+      setScore(score + 1);
+    }
+
+    setTimeout(() => {
+      if (currentQuestion < QUIZ_QUESTIONS.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedAnswer(null);
+        setIsCorrect(null);
+        setHasPlayed(false);
+      } else {
+        setShowResult(true);
+        if ((score + (correct ? 1 : 0)) >= 3) {
+          setShowReward(true);
+        }
+      }
+    }, 1500);
+  };
+
+  const restartQuiz = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+    setScore(0);
+    setShowResult(false);
+    setHasPlayed(false);
+  };
+
+  if (showResult) {
+    const stars = score >= 5 ? 3 : score >= 3 ? 2 : 1;
+    return (
+      <motion.div 
+        className="max-w-md mx-auto text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <StarReward show={showReward} stars={stars} onComplete={() => setShowReward(false)} />
+        
+        <div className="bg-white rounded-3xl p-8 shadow-lg">
+          <motion.div 
+            className="text-6xl mb-4"
+            animate={{ rotate: [0, -10, 10, 0], scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.5 }}
+          >
+            {score >= 4 ? '🎉' : score >= 2 ? '👏' : '💪'}
+          </motion.div>
+          
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {score >= 4 ? 'Amazing!' : score >= 2 ? 'Good Job!' : 'Keep Practicing!'}
+          </h2>
+          
+          <p className="text-gray-600 mb-6">
+            You got {score} out of {QUIZ_QUESTIONS.length} correct!
+          </p>
+
+          <div className="flex gap-3 justify-center">
+            <Button
+              variant="outline"
+              onClick={onBack}
+              className="rounded-xl"
+            >
+              Back to Quiz Menu
+            </Button>
+            <Button
+              onClick={restartQuiz}
+              className="rounded-xl bg-gradient-to-r from-purple-400 to-purple-500"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div 
+      className="max-w-lg mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      {/* Progress */}
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-gray-600 font-medium">
+          Question {currentQuestion + 1}/{QUIZ_QUESTIONS.length}
+        </span>
+        <div className="flex gap-1">
+          {QUIZ_QUESTIONS.map((_, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-2 rounded-full ${
+                i < currentQuestion ? 'bg-green-400' : 
+                i === currentQuestion ? 'bg-purple-400' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Question Card */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 shadow-lg mb-6">
+        <h2 className="text-xl font-bold text-gray-800 text-center mb-6">
+          Listen and choose the correct word! 👂
+        </h2>
+
+        {/* Play Button */}
+        <motion.button
+          onClick={playWord}
+          className="w-full py-8 bg-gradient-to-br from-sky-100 to-purple-100 rounded-2xl flex flex-col items-center justify-center gap-3 mb-6 hover:from-sky-200 hover:to-purple-200 transition-colors"
+          whileTap={{ scale: 0.98 }}
+        >
+          <motion.div 
+            className="w-20 h-20 bg-gradient-to-br from-sky-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg"
+            animate={hasPlayed ? {} : { scale: [1, 1.1, 1] }}
+            transition={{ duration: 1, repeat: hasPlayed ? 0 : Infinity }}
+          >
+            <Volume2 className="w-10 h-10 text-white" />
+          </motion.div>
+          <span className="text-gray-600 font-medium">
+            {hasPlayed ? 'Tap to hear again' : 'Tap to hear the word'}
+          </span>
+        </motion.button>
+
+        {/* Options */}
+        <div className="grid grid-cols-2 gap-3">
+          {question.options.map((option, index) => {
+            const isSelected = selectedAnswer === index;
+            const isCorrectAnswer = index === question.correct;
+            
+            let bgColor = 'bg-gray-50 hover:bg-gray-100 border-gray-200';
+            if (selectedAnswer !== null) {
+              if (isCorrectAnswer) {
+                bgColor = 'bg-green-100 border-green-400';
+              } else if (isSelected) {
+                bgColor = 'bg-red-100 border-red-400';
+              }
+            }
+
+            return (
+              <motion.button
+                key={index}
+                onClick={() => handleAnswer(index)}
+                disabled={selectedAnswer !== null || !hasPlayed}
+                className={`
+                  p-4 rounded-2xl border-2 text-lg font-medium transition-all
+                  ${bgColor}
+                  ${!hasPlayed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+                whileHover={selectedAnswer === null && hasPlayed ? { scale: 1.02 } : {}}
+                whileTap={selectedAnswer === null && hasPlayed ? { scale: 0.98 } : {}}
+              >
+                <div className="flex items-center justify-between">
+                  <span>{option}</span>
+                  {selectedAnswer !== null && isCorrectAnswer && (
+                    <Check className="w-5 h-5 text-green-600" />
+                  )}
+                  {selectedAnswer !== null && isSelected && !isCorrectAnswer && (
+                    <X className="w-5 h-5 text-red-600" />
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Feedback */}
+      <AnimatePresence>
+        {isCorrect !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`text-center p-4 rounded-2xl ${
+              isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            <span className="text-xl font-bold">
+              {isCorrect ? '🎉 Correct!' : `😊 The answer was "${question.word}"`}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}

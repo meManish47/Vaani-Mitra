@@ -1,0 +1,327 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, Volume2, ArrowRight, RotateCcw, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import StarReward from '@/components/shared/StarReward';
+
+const SPEAKING_WORDS = [
+  { word: 'Cat', hint: '🐱', difficulty: 'easy' },
+  { word: 'Ball', hint: '⚽', difficulty: 'easy' },
+  { word: 'Apple', hint: '🍎', difficulty: 'easy' },
+  { word: 'Rainbow', hint: '🌈', difficulty: 'medium' },
+  { word: 'Butterfly', hint: '🦋', difficulty: 'hard' },
+];
+
+export default function SpeakingQuiz({ onComplete, onBack }) {
+  const [currentWord, setCurrentWord] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [result, setResult] = useState(null);
+  const [score, setScore] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const word = SPEAKING_WORDS[currentWord];
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        const confidence = event.results[0][0].confidence;
+        checkPronunciation(transcript, confidence);
+      };
+
+      recognitionRef.current.onerror = () => {
+        setIsRecording(false);
+        setResult({ success: false, message: "Couldn't hear you. Try again!" });
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [currentWord]);
+
+  const playWord = () => {
+    const utterance = new SpeechSynthesisUtterance(word.word);
+    utterance.rate = 0.6;
+    speechSynthesis.speak(utterance);
+  };
+
+  const startRecording = () => {
+    if (!recognitionRef.current) {
+      // Fallback for browsers without speech recognition
+      setIsRecording(true);
+      setTimeout(() => {
+        setIsRecording(false);
+        // Simulate success for demo
+        const success = Math.random() > 0.3;
+        if (success) {
+          setScore(score + 1);
+          setResult({ success: true, message: 'Great job! 🎉' });
+        } else {
+          setResult({ success: false, message: 'Almost! Try again!' });
+        }
+        setAttempts(attempts + 1);
+      }, 2000);
+      return;
+    }
+
+    setIsRecording(true);
+    setResult(null);
+    recognitionRef.current.start();
+  };
+
+  const checkPronunciation = (transcript, confidence) => {
+    const targetWord = word.word.toLowerCase();
+    const isCorrect = transcript.includes(targetWord) || 
+                      levenshteinDistance(transcript, targetWord) <= 2;
+    
+    setAttempts(attempts + 1);
+    
+    if (isCorrect && confidence > 0.5) {
+      setScore(score + 1);
+      setResult({ 
+        success: true, 
+        message: confidence > 0.8 ? 'Perfect! 🌟' : 'Great job! 🎉',
+        heard: transcript
+      });
+    } else {
+      setResult({ 
+        success: false, 
+        message: 'Keep trying! You said: "' + transcript + '"',
+        heard: transcript
+      });
+    }
+  };
+
+  const levenshteinDistance = (str1, str2) => {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        }
+      }
+    }
+    return dp[m][n];
+  };
+
+  const nextWord = () => {
+    if (currentWord < SPEAKING_WORDS.length - 1) {
+      setCurrentWord(currentWord + 1);
+      setResult(null);
+    } else {
+      setShowResult(true);
+      if (score >= 3) {
+        setShowReward(true);
+      }
+    }
+  };
+
+  const restartQuiz = () => {
+    setCurrentWord(0);
+    setResult(null);
+    setScore(0);
+    setAttempts(0);
+    setShowResult(false);
+  };
+
+  if (showResult) {
+    const stars = score >= 5 ? 3 : score >= 3 ? 2 : 1;
+    return (
+      <motion.div 
+        className="max-w-md mx-auto text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <StarReward show={showReward} stars={stars} onComplete={() => setShowReward(false)} />
+        
+        <div className="bg-white rounded-3xl p-8 shadow-lg">
+          <motion.div 
+            className="text-6xl mb-4"
+            animate={{ rotate: [0, -10, 10, 0], scale: [1, 1.2, 1] }}
+          >
+            {score >= 4 ? '🏆' : score >= 2 ? '🌟' : '💪'}
+          </motion.div>
+          
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {score >= 4 ? 'Super Speaker!' : score >= 2 ? 'Nice Work!' : 'Keep Practicing!'}
+          </h2>
+          
+          <p className="text-gray-600 mb-6">
+            You pronounced {score} out of {SPEAKING_WORDS.length} words correctly!
+          </p>
+
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={onBack} className="rounded-xl">
+              Back to Quiz Menu
+            </Button>
+            <Button
+              onClick={restartQuiz}
+              className="rounded-xl bg-gradient-to-r from-pink-400 to-purple-500"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div 
+      className="max-w-lg mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      {/* Progress */}
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-gray-600 font-medium">
+          Word {currentWord + 1}/{SPEAKING_WORDS.length}
+        </span>
+        <div className="flex gap-1">
+          {SPEAKING_WORDS.map((_, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-2 rounded-full ${
+                i < currentWord ? 'bg-green-400' : 
+                i === currentWord ? 'bg-pink-400' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Word Card */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 shadow-lg mb-6">
+        <h2 className="text-xl font-bold text-gray-800 text-center mb-6">
+          Say this word! 🎤
+        </h2>
+
+        {/* Word Display */}
+        <div className="text-center mb-6">
+          <motion.div 
+            className="text-8xl mb-4"
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            {word.hint}
+          </motion.div>
+          <h3 className="text-4xl font-bold text-gray-800">{word.word}</h3>
+          <span className={`
+            inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium
+            ${word.difficulty === 'easy' ? 'bg-green-100 text-green-700' : 
+              word.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
+              'bg-orange-100 text-orange-700'}
+          `}>
+            {word.difficulty}
+          </span>
+        </div>
+
+        {/* Listen Button */}
+        <Button
+          variant="outline"
+          onClick={playWord}
+          className="w-full mb-4 rounded-xl border-2 border-sky-200 py-6"
+        >
+          <Volume2 className="w-5 h-5 mr-2 text-sky-500" />
+          Listen first
+        </Button>
+
+        {/* Record Button */}
+        <motion.button
+          onClick={startRecording}
+          disabled={isRecording}
+          className={`
+            w-full py-8 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all
+            ${isRecording 
+              ? 'bg-gradient-to-br from-red-400 to-red-500' 
+              : 'bg-gradient-to-br from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600'}
+          `}
+          whileTap={{ scale: 0.98 }}
+        >
+          <motion.div 
+            className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center"
+            animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ duration: 0.5, repeat: isRecording ? Infinity : 0 }}
+          >
+            <Mic className="w-8 h-8 text-white" />
+          </motion.div>
+          <span className="text-white font-bold text-lg">
+            {isRecording ? 'Listening...' : 'Hold to Speak'}
+          </span>
+          {isRecording && (
+            <div className="flex gap-1">
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-1.5 bg-white rounded-full"
+                  animate={{ height: [16, 32, 16] }}
+                  transition={{ duration: 0.4, repeat: Infinity, delay: i * 0.1 }}
+                />
+              ))}
+            </div>
+          )}
+        </motion.button>
+      </div>
+
+      {/* Result Feedback */}
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`p-4 rounded-2xl flex items-center justify-between ${
+              result.success ? 'bg-green-100' : 'bg-yellow-100'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {result.success ? (
+                <Check className="w-6 h-6 text-green-600" />
+              ) : (
+                <span className="text-2xl">🔄</span>
+              )}
+              <span className={`font-medium ${result.success ? 'text-green-700' : 'text-yellow-700'}`}>
+                {result.message}
+              </span>
+            </div>
+            
+            {result.success && (
+              <Button
+                size="sm"
+                onClick={nextWord}
+                className="rounded-xl bg-green-500 hover:bg-green-600"
+              >
+                Next <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}

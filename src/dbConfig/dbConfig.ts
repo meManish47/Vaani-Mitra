@@ -1,21 +1,20 @@
 import mongoose from "mongoose";
 
+let isConnected = false;
+
 export async function connect() {
-    try {
-        mongoose.connect(process.env.MONGO_URI!);
-        const connection = mongoose.connection;
-
-        connection.on('connected', ()=>{
-            console.log('MongoDB connected successfully');
-        })
-
-        connection.on('error', (err)=>{
-            console.log('MongoDB connection error. Please make sure MongoDB is running. ' + err);
-            process.exit();
-        })
-        
-    } catch (error) {
-        console.log('Something goes wrong!');
-        console.log(error);
+  try {
+    if (isConnected || mongoose.connection.readyState === 1) return;
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is not set");
     }
+
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log("MongoDB connected successfully");
+  } catch (error) {
+    // Never terminate the Node process during build/runtime.
+    console.log("MongoDB connection error. Please make sure MongoDB is running.", error);
+    throw error;
+  }
 }
