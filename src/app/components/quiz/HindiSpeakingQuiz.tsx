@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/app/components/ui/button";
 
 // ─────────────────────────────────────────────
@@ -36,7 +37,23 @@ function makeSpeakFriendly(text: string) {
     .trim();
 }
 
-function speakHindi(text: string) {
+async function speakHindi(text: string) {
+  // Prefer native TTS on Capacitor builds for better device compatibility.
+  if (Capacitor?.isNativePlatform?.()) {
+    try {
+      const { TextToSpeech } = await import("@capacitor-community/text-to-speech");
+      await TextToSpeech.speak({
+        text: makeSpeakFriendly(text),
+        lang: "hi-IN",
+        rate: 0.9,
+        pitch: 1.0,
+      });
+      return;
+    } catch {
+      // Fall through to Web Speech API fallback.
+    }
+  }
+
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel(); // stop any ongoing speech
 
@@ -54,12 +71,19 @@ function speakHindi(text: string) {
 
 // Voices load async on mobile — wait for them then speak
 function speakWhenReady(text: string) {
+  if (Capacitor?.isNativePlatform?.()) {
+    void speakHindi(text);
+    return;
+  }
+
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   const voices = window.speechSynthesis.getVoices();
   if (voices.length > 0) {
-    speakHindi(text);
+    void speakHindi(text);
   } else {
-    window.speechSynthesis.onvoiceschanged = () => speakHindi(text);
+    window.speechSynthesis.onvoiceschanged = () => {
+      void speakHindi(text);
+    };
   }
 }
 
@@ -180,6 +204,9 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const getCurrentWord  = () => quizWordsRef.current[currentIndexRef.current];
 
   const recognitionRef       = useRef<any>(null);
+  const nativeRecoRef        = useRef<any>(null);
+  const nativePartialRef     = useRef<any>(null);
+  const isNativeRecoRef      = useRef(false);
   const recordingTimeoutRef  = useRef<any>(null);
   const countdownIntervalRef = useRef<any>(null);
   const lastHeardAltsRef     = useRef<string[]>([]);
@@ -195,7 +222,11 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
     if (!SpeechRecognition) {
-      addLog("❌ SpeechRecognition NOT available on this browser/device");
+      if (!Capacitor?.isNativePlatform?.()) {
+        addLog("❌ SpeechRecognition NOT available on this browser/device");
+      } else {
+        addLog("ℹ️ Web SpeechRecognition unavailable, will use Capacitor native speech");
+      }
       return;
     }
 
@@ -239,7 +270,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
         stopTimers();
         setIsRecording(false);
         setLiveTranscript("");
-        runEvaluate(alts);
+        runEvaluate(uniqueAlts);
       }
     };
 
@@ -293,6 +324,8 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     return () => {
       addLog("Cleanup: aborting recognition");
       reco.abort();
+      try { nativeRecoRef.current?.stop?.(); } catch {}
+      try { nativePartialRef.current?.remove?.(); } catch {}
       stopTimers();
     };
   }, []);
@@ -325,6 +358,11 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     setIsRecording(false);
     setLiveTranscript("");
     try { recognitionRef.current?.stop(); } catch (e) { addLog(`stopRecording error: ${e}`); }
+    if (isNativeRecoRef.current) {
+      try { nativeRecoRef.current?.stop?.(); } catch (e) { addLog(`native stop error: ${e}`); }
+      try { nativePartialRef.current?.remove?.(); } catch {}
+      nativePartialRef.current = null;
+    }
   }, []);
 
   // ── Evaluate ──────────────────────────────────
@@ -410,16 +448,6 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       return;
     }
 
-    if (!recognitionRef.current) {
-      addLog("❌ recognitionRef is null — mic not supported");
-      alert(
-        location.protocol === "http:"
-          ? "Mic requires HTTPS. Open this page over https:// on your phone."
-          : "Mic not supported in this browser"
-      );
-      return;
-    }
-
     // Tap to stop mid-recording
     if (isRecording) {
       addLog("Manual stop mid-recording");
@@ -443,8 +471,9 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     setIsRecording(true);
     setCountdown(RECORD_SECONDS);
 
-    const startRecognition = () => {
+    const startWebRecognition = () => {
       try {
+        isNativeRecoRef.current = false;
         recognitionRef.current.start();
         addLog("recognition.start() called");
       } catch (e: any) {
@@ -461,7 +490,77 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       }
     };
 
-    if (navigator?.mediaDevices?.getUserMedia) {
+    const startNativeRecognition = async () => {
+      try {
+        const mod = await import("@capacitor-community/speech-recognition");
+        const SpeechRecognition = mod.SpeechRecognition;
+        nativeRecoRef.current = SpeechRecognition;
+        isNativeRecoRef.current = true;
+
+        if (SpeechRecognition.requestPermission) {
+          await SpeechRecognition.requestPermission();
+        } else if (SpeechRecognition.requestPermissions) {
+          await SpeechRecognition.requestPermissions();
+        }
+
+        if (SpeechRecognition.available) {
+          const availability = await SpeechRecognition.available();
+          if (availability?.available === false) {
+            addLog("❌ Native speech recognition not available on this device");
+            setResult({ success: false, message: "🚫 Speech recognition not available on this phone." });
+            setIsRecording(false);
+            stopTimers();
+            return;
+          }
+        }
+
+        try { nativePartialRef.current?.remove?.(); } catch {}
+        nativePartialRef.current = await SpeechRecognition.addListener?.("partialResults", (data: any) => {
+          if (evaluatedRef.current) return;
+          const matches = Array.isArray(data?.matches) ? data.matches.filter(Boolean) : [];
+          if (matches.length > 0) {
+            const uniqueAlts = Array.from(new Set(matches.map((m: string) => String(m).trim()).filter(Boolean)));
+            if (uniqueAlts.length > 0) {
+              lastHeardAltsRef.current = uniqueAlts;
+              setLiveTranscript(uniqueAlts[0]);
+              addLog(`native partialResults: ${JSON.stringify(uniqueAlts)}`);
+            }
+          }
+        });
+
+        await SpeechRecognition.start({
+          language: "hi-IN",
+          maxResults: 10,
+          partialResults: true,
+          popup: false,
+        });
+        addLog("✅ Native speech recognition started");
+      } catch (e: any) {
+        addLog(`❌ Native recognition start failed: ${e?.message || e}`);
+        if (!recognitionRef.current) {
+          setResult({ success: false, message: "🚫 Mic/Speech recognition not supported on this device." });
+          setIsRecording(false);
+          stopTimers();
+          return;
+        }
+        addLog("↩️ Falling back to Web SpeechRecognition");
+        startWebRecognition();
+      }
+    };
+
+    if (Capacitor?.isNativePlatform?.()) {
+      void startNativeRecognition();
+    } else if (!recognitionRef.current) {
+      addLog("❌ recognitionRef is null — mic not supported");
+      alert(
+        location.protocol === "http:"
+          ? "Mic requires HTTPS. Open this page over https:// on your phone."
+          : "Mic not supported in this browser"
+      );
+      setIsRecording(false);
+      setCountdown(0);
+      return;
+    } else if (navigator?.mediaDevices?.getUserMedia) {
       navigator.mediaDevices
         .getUserMedia({
           audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true },
@@ -469,14 +568,14 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
         .then((stream) => {
           stream.getTracks().forEach((t) => t.stop());
           addLog("✅ Mic warm-up with noise suppression");
-          startRecognition();
+          startWebRecognition();
         })
         .catch((e) => {
           addLog(`Mic warm-up skipped: ${e?.message || e}`);
-          startRecognition();
+          startWebRecognition();
         });
     } else {
-      startRecognition();
+      startWebRecognition();
     }
 
     countdownIntervalRef.current = setInterval(() => {
