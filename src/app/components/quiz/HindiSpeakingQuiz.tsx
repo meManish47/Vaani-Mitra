@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2 } from "lucide-react";
+import { Square, Volume2 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/app/components/ui/button";
 
@@ -37,24 +37,33 @@ function makeSpeakFriendly(text: string) {
     .trim();
 }
 
-async function speakHindi(text: string) {
+async function speakHindi(
+  text: string,
+  callbacks?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
+) {
   // Prefer native TTS on Capacitor builds for better device compatibility.
   if (Capacitor?.isNativePlatform?.()) {
     try {
       const { TextToSpeech } = await import("@capacitor-community/text-to-speech");
+      callbacks?.onStart?.();
       await TextToSpeech.speak({
         text: makeSpeakFriendly(text),
         lang: "hi-IN",
         rate: 0.9,
         pitch: 1.0,
       });
+      callbacks?.onEnd?.();
       return;
     } catch {
+      callbacks?.onError?.();
       // Fall through to Web Speech API fallback.
     }
   }
 
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    callbacks?.onError?.();
+    return;
+  }
   window.speechSynthesis.cancel(); // stop any ongoing speech
 
   const utter = new SpeechSynthesisUtterance(makeSpeakFriendly(text));
@@ -65,24 +74,33 @@ async function speakHindi(text: string) {
   const voices = window.speechSynthesis.getVoices();
   const hindiVoice = pickBestHindiVoice(voices);
   if (hindiVoice) utter.voice = hindiVoice;
+  utter.onstart = () => callbacks?.onStart?.();
+  utter.onend = () => callbacks?.onEnd?.();
+  utter.onerror = () => callbacks?.onError?.();
 
   window.speechSynthesis.speak(utter);
 }
 
 // Voices load async on mobile — wait for them then speak
-function speakWhenReady(text: string) {
+function speakWhenReady(
+  text: string,
+  callbacks?: { onStart?: () => void; onEnd?: () => void; onError?: () => void }
+) {
   if (Capacitor?.isNativePlatform?.()) {
-    void speakHindi(text);
+    void speakHindi(text, callbacks);
     return;
   }
 
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    callbacks?.onError?.();
+    return;
+  }
   const voices = window.speechSynthesis.getVoices();
   if (voices.length > 0) {
-    void speakHindi(text);
+    void speakHindi(text, callbacks);
   } else {
     window.speechSynthesis.onvoiceschanged = () => {
-      void speakHindi(text);
+      void speakHindi(text, callbacks);
     };
   }
 }
@@ -191,6 +209,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const [aiFeedback, setAiFeedback]               = useState<string | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
   const [locked, setLocked]                       = useState(false);
+  const [isAiSpeaking, setIsAiSpeaking]           = useState(false);
 
   // DEBUG — every important event gets pushed here and shown on screen
   const [debugLog, setDebugLog]                   = useState<string[]>([]);
@@ -212,6 +231,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const lastHeardAltsRef     = useRef<string[]>([]);
   const evaluatedRef         = useRef(false);
   const spokenFeedbackRef    = useRef<string>("");
+  const aiFeedbackErrorRef   = useRef(false);
 
   // ── Create recognition ONCE on mount ─────────
   useEffect(() => {
@@ -335,7 +355,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   }, [currentIndex]);
 
   useEffect(() => {
-    if (!locked || aiFeedbackLoading || !aiFeedback) return;
+    if (!locked || aiFeedbackLoading || !aiFeedback || aiFeedbackErrorRef.current) return;
     if (spokenFeedbackRef.current === aiFeedback) return;
 
     const feedbackToSpeak = cleanFeedbackForSpeech(aiFeedback);
@@ -343,8 +363,28 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
 
     spokenFeedbackRef.current = aiFeedback;
     addLog(`TTS: speaking AI feedback "${feedbackToSpeak.slice(0, 80)}..."`);
-    speakWhenReady(feedbackToSpeak);
+    speakWhenReady(feedbackToSpeak, {
+      onStart: () => setIsAiSpeaking(true),
+      onEnd: () => setIsAiSpeaking(false),
+      onError: () => setIsAiSpeaking(false),
+    });
   }, [locked, aiFeedbackLoading, aiFeedback]);
+
+  const stopAiSpeech = useCallback(async () => {
+    setIsAiSpeaking(false);
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    if (Capacitor?.isNativePlatform?.()) {
+      try {
+        const { TextToSpeech } = await import("@capacitor-community/text-to-speech");
+        await TextToSpeech.stop?.();
+      } catch {
+        // Ignore stop failures, browser cancel already attempted.
+      }
+    }
+    addLog("TTS: manually stopped by user");
+  }, []);
 
   // ── Timer helpers ─────────────────────────────
   const stopTimers = () => {
@@ -395,6 +435,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     addLog(`AI call start — word="${word.word}" heard="${heard}" success=${success}`);
     setAiFeedbackLoading(true);
     setAiFeedback(null);
+    aiFeedbackErrorRef.current = false;
 
     try {
       const res = await fetch("/api/speak-quiz-analysis", {
@@ -410,20 +451,24 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
         }),
       });
 
-      addLog(`AI response status: ${res.status}`);
       const data = await res.json();
+      addLog(`AI response status: ${res.status}`);
       addLog(`AI data keys: ${Object.keys(data).join(", ")}`);
-      addLog(`AI feedback: "${String(data.feedback).slice(0, 80)}..."`);
+      if (!res.ok || !data?.feedback || typeof data.feedback !== "string") {
+        aiFeedbackErrorRef.current = true;
+        addLog(`⚠️ AI feedback unavailable: ${String(data?.error || "invalid response")}`);
+        setAiFeedback(null);
+        return;
+      }
 
-      if (data.feedback) {
+      addLog(`AI feedback: "${String(data.feedback).slice(0, 80)}..."`);
+      if (data.feedback.trim()) {
         setAiFeedback(data.feedback);
-      } else {
-        addLog("⚠️ No feedback field in AI response");
-        setAiFeedback("(AI returned no feedback — check API route)");
       }
     } catch (err: any) {
       addLog(`❌ AI fetch error: ${err?.message}`);
-      setAiFeedback(`⚠️ AI error: ${err?.message}`);
+      aiFeedbackErrorRef.current = true;
+      setAiFeedback(null);
     } finally {
       setAiFeedbackLoading(false);
     }
@@ -433,8 +478,11 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const tryAgain = () => {
     setResult(null);
     setAiFeedback(null);
+    setIsAiSpeaking(false);
+    void stopAiSpeech();
     setLiveTranscript("");
     setLocked(false);
+    aiFeedbackErrorRef.current = false;
     spokenFeedbackRef.current = "";
     evaluatedRef.current     = false;
     lastHeardAltsRef.current = [];
@@ -611,8 +659,11 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       setCurrentIndex(next);
       setResult(null);
       setAiFeedback(null);
+      setIsAiSpeaking(false);
+      void stopAiSpeech();
       setLiveTranscript("");
       setLocked(false);
+      aiFeedbackErrorRef.current = false;
       spokenFeedbackRef.current = "";
       evaluatedRef.current     = false;
       lastHeardAltsRef.current = [];
@@ -762,16 +813,30 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
                     );
                   })}
                   {feedbackToSpeak && (
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => {
-                        addLog(`TTS: replaying AI feedback "${feedbackToSpeak.slice(0, 80)}..."`);
-                        speakWhenReady(feedbackToSpeak);
-                      }}
-                    >
-                      <Volume2 className="mr-2" /> सुनो फिर से
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          addLog(`TTS: replaying AI feedback "${feedbackToSpeak.slice(0, 80)}..."`);
+                          speakWhenReady(feedbackToSpeak, {
+                            onStart: () => setIsAiSpeaking(true),
+                            onEnd: () => setIsAiSpeaking(false),
+                            onError: () => setIsAiSpeaking(false),
+                          });
+                        }}
+                      >
+                        <Volume2 className="mr-2" /> सुनो फिर से
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-red-300 text-red-700 hover:bg-red-50"
+                        onClick={() => void stopAiSpeech()}
+                        disabled={!isAiSpeaking}
+                      >
+                        <Square className="mr-2" /> Reciting रोकें
+                      </Button>
+                    </div>
                   )}
                 </div>
               );

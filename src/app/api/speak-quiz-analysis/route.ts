@@ -40,6 +40,9 @@ export async function POST(req: Request) {
   } catch (err: any) {
     const errMsg = err?.message || err?.toString() || "unknown error";
     console.error("speak-quiz-analysis error:", errMsg);
-    return NextResponse.json({ feedback: "DEBUG: " + errMsg }, { status: 200 });
+    return NextResponse.json(
+      { error: "Unable to generate AI feedback right now." },
+      { status: 500 }
+    );
   }
 }
