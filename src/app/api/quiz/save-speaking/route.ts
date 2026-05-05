@@ -22,7 +22,7 @@ const WORD_PHONEME_MAP: Record<string, string[]> = {
   "पत्ता": ["प", "त"],
   "चाँद": ["च", "द"],
   "तारे": ["त", "र"],
-  "बादल": ["ब", "द", "ल"],
+  "पेड़": ["प", "ड"],
 };
 
 export async function POST(req: NextRequest) {
