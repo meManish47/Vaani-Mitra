@@ -497,7 +497,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       success: match,
       levenshteinDistance: distance,
     });
-  }, []);
+  }, [callAIAnalysis]);
 
   // ── AI call ───────────────────────────────────
   const callAIAnalysis = async ({ word, heard, allHeard, success, levenshteinDistance }) => {
@@ -785,7 +785,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
               }`}>
                 {r.success ? "✅" : "❌"} {r.word}
                 {!r.success && r.heard && (
-                  <p className="text-xs opacity-60 mt-1 font-normal">बोला: "{r.heard}"</p>
+                  <p className="text-xs opacity-60 mt-1 font-normal">बोला: &quot;{r.heard}&quot;</p>
                 )}
               </div>
             ))}
