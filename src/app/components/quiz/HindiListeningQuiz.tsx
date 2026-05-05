@@ -29,6 +29,7 @@ export default function HindiListeningQuiz({ onBack, onComplete }: Props) {
   const [week, setweek] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState<{ word: string; selected: string; correct: boolean }[]>([]);
+  const [saveStatus, setSaveStatus] = useState<"idle"|"saved"|"login_required">("idle");
 
   const question = QUIZ_QUESTIONS[currentQuestion];
 
@@ -79,9 +80,25 @@ export default function HindiListeningQuiz({ onBack, onComplete }: Props) {
 
       const data = await res.json();
       console.log("AI Analysis Response:", data);
-      console.log("AI Feedback:", data.feedback);
       setAnalysis(data.feedback);
       setweek(data.weakPhonemes);
+
+      // Handle save status
+      if (data.requiresLogin) {
+        // Store pending data in sessionStorage for after-login submission
+        sessionStorage.setItem(
+          "pendingQuizData",
+          JSON.stringify({
+            type: "listening",
+            score,
+            total: QUIZ_QUESTIONS.length,
+            responses,
+          })
+        );
+        setSaveStatus("login_required");
+      } else if (data.saved) {
+        setSaveStatus("saved");
+      }
     } catch (err) {
       console.error("AI Feedback Error:", err);
       setAnalysis("⚠️ AI couldn't analyze. Try again later!");
@@ -99,7 +116,9 @@ export default function HindiListeningQuiz({ onBack, onComplete }: Props) {
     setHasPlayed(false);
     setShowResult(false);
     setAnalysis(null);
+    setSaveStatus("idle");
   };
+
 
   // -------------------------- RESULT SCREEN --------------------------
   if (showResult) {
@@ -115,16 +134,18 @@ export default function HindiListeningQuiz({ onBack, onComplete }: Props) {
             You scored <b>{score}</b> out of {QUIZ_QUESTIONS.length}
           </p>
 
+          {/* AI Feedback button */}
           {!analysis && (
             <Button
               onClick={analyzeWithAI}
               disabled={loading}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-400 to-purple-500 text-white"
             >
-              {loading ? "🔄 Analyzing..." : "🧠 Get Feedback"}
+              {loading ? "🔄 Analyzing..." : "🧠 Get AI Feedback & Save"}
             </Button>
           )}
 
+          {/* AI Feedback box */}
           {analysis && (
             <motion.div
               className="bg-yellow-50 border border-yellow-300 rounded-2xl p-4 mt-5 text-gray-700 text-start"
@@ -133,8 +154,26 @@ export default function HindiListeningQuiz({ onBack, onComplete }: Props) {
             >
               <h3 className="font-bold text-lg mb-2">🧠 AI Feedback</h3>
               <p className="whitespace-pre-line font-semibold text-gray-800">{analysis}</p>
-              <p className="whitespace-pre-line font-semibold text-gray-800">{}</p>
             </motion.div>
+          )}
+
+          {/* Save status */}
+          {saveStatus === "saved" && (
+            <div className="mt-4 p-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+              ✅ Progress saved to your account!
+            </div>
+          )}
+          {saveStatus === "login_required" && (
+            <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-start">
+              <p className="font-semibold text-sm mb-1">🔒 Login to save your progress!</p>
+              <p className="text-xs text-amber-600 mb-3">Your result is ready — log in and it will be saved automatically.</p>
+              <Button
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm"
+                onClick={() => window.location.href = "/login"}
+              >
+                Login & Save 🚀
+              </Button>
+            </div>
           )}
 
           <div className="flex gap-3 justify-center mt-6">

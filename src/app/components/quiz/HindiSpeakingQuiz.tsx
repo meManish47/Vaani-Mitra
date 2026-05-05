@@ -197,7 +197,9 @@ const RECORD_SECONDS = 6;
 // Component
 // ─────────────────────────────────────────────
 export default function HindiSpeakingQuiz({ onComplete, onBack }) {
-  const [quizWords]    = useState(() => pickWords());
+  // Words start as random; replaced by adaptive once loaded
+  const [quizWords, setQuizWords]             = useState(() => pickWords());
+  const [wordsAdaptive, setWordsAdaptive]     = useState(false);
   const [currentIndex, setCurrentIndex]           = useState(0);
   const [isRecording, setIsRecording]             = useState(false);
   const [liveTranscript, setLiveTranscript]       = useState("");
@@ -207,9 +209,14 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const [responses, setResponses]                 = useState([]);
   const [countdown, setCountdown]                 = useState(0);
   const [aiFeedback, setAiFeedback]               = useState<string | null>(null);
+  const [aiError, setAiError]                     = useState<string | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
   const [locked, setLocked]                       = useState(false);
   const [isAiSpeaking, setIsAiSpeaking]           = useState(false);
+
+  // Save state
+  const [saveStatus, setSaveStatus]               = useState<"idle"|"saving"|"saved"|"login_required">("idle");
+  const [saveError, setSaveError]                 = useState<string|null>(null);
 
   // DEBUG — every important event gets pushed here and shown on screen
   const [debugLog, setDebugLog]                   = useState<string[]>([]);
@@ -222,6 +229,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const quizWordsRef    = useRef(quizWords);
   const getCurrentWord  = () => quizWordsRef.current[currentIndexRef.current];
 
+
   const recognitionRef       = useRef<any>(null);
   const nativeRecoRef        = useRef<any>(null);
   const nativePartialRef     = useRef<any>(null);
@@ -233,9 +241,70 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const spokenFeedbackRef    = useRef<string>("");
   const aiFeedbackErrorRef   = useRef(false);
 
+  // ── Fetch adaptive words on mount ─────────────
+  useEffect(() => {
+    async function loadAdaptiveWords() {
+      try {
+        const res = await fetch("/api/quiz/adaptive-words");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.words?.length) {
+          setQuizWords(data.words);
+          quizWordsRef.current = data.words;
+          setWordsAdaptive(data.adaptive === true);
+          addLog(`Adaptive words loaded (adaptive=${data.adaptive})`);
+        }
+      } catch (e) {
+        addLog("Adaptive words fetch failed — using random");
+      }
+    }
+    loadAdaptiveWords();
+  }, []);
+
+  // ── Save full speaking quiz to DB ──────────────
+  const saveQuizSession = async (finalResponses: any[], finalScore: number) => {
+    setSaveStatus("saving");
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/quiz/save-speaking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          score: finalScore,
+          total: quizWordsRef.current.length,
+          responses: finalResponses,
+          weakPhonemes: [],
+          feedback: "",
+        }),
+      });
+      const data = await res.json();
+      if (data.requiresLogin) {
+        // Store in sessionStorage so login page can re-submit
+        sessionStorage.setItem(
+          "pendingQuizData",
+          JSON.stringify({
+            type: "speaking",
+            score: finalScore,
+            total: quizWordsRef.current.length,
+            responses: finalResponses,
+          })
+        );
+        setSaveStatus("login_required");
+      } else {
+        setSaveStatus("saved");
+        addLog("✅ Quiz session saved to DB");
+      }
+    } catch (err: any) {
+      addLog(`❌ Save error: ${err.message}`);
+      setSaveError("Could not save — check connection.");
+      setSaveStatus("idle");
+    }
+  };
+
   // ── Create recognition ONCE on mount ─────────
   useEffect(() => {
     addLog("Component mounted");
+
 
     const SpeechRecognition =
       typeof window !== "undefined" &&
@@ -435,6 +504,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     addLog(`AI call start — word="${word.word}" heard="${heard}" success=${success}`);
     setAiFeedbackLoading(true);
     setAiFeedback(null);
+    setAiError(null);
     aiFeedbackErrorRef.current = false;
 
     try {
@@ -456,8 +526,10 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       addLog(`AI data keys: ${Object.keys(data).join(", ")}`);
       if (!res.ok || !data?.feedback || typeof data.feedback !== "string") {
         aiFeedbackErrorRef.current = true;
-        addLog(`⚠️ AI feedback unavailable: ${String(data?.error || "invalid response")}`);
+        const errorMessage = String(data?.error || "AI feedback unavailable right now.");
+        addLog(`⚠️ AI feedback unavailable: ${errorMessage}`);
         setAiFeedback(null);
+        setAiError(errorMessage);
         return;
       }
 
@@ -469,6 +541,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       addLog(`❌ AI fetch error: ${err?.message}`);
       aiFeedbackErrorRef.current = true;
       setAiFeedback(null);
+      setAiError("AI service is temporarily unavailable. Please try again.");
     } finally {
       setAiFeedbackLoading(false);
     }
@@ -478,6 +551,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
   const tryAgain = () => {
     setResult(null);
     setAiFeedback(null);
+    setAiError(null);
     setIsAiSpeaking(false);
     void stopAiSpeech();
     setLiveTranscript("");
@@ -659,6 +733,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       setCurrentIndex(next);
       setResult(null);
       setAiFeedback(null);
+      setAiError(null);
       setIsAiSpeaking(false);
       void stopAiSpeech();
       setLiveTranscript("");
@@ -668,8 +743,12 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       evaluatedRef.current     = false;
       lastHeardAltsRef.current = [];
     } else {
+      // Quiz finished — save to DB and show results
+      const finalResponses = [...responses];
+      const finalScore = score;
       setShowResult(true);
-      onComplete?.({ score, attempts: responses });
+      onComplete?.({ score: finalScore, attempts: finalResponses });
+      void saveQuizSession(finalResponses, finalScore);
     }
   };
 
@@ -677,24 +756,97 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
 
   // ── Quiz Completed ────────────────────────────
   if (showResult) {
+    const pct = Math.round((score / quizWords.length) * 100);
+    const trophy = pct >= 80 ? "🏆" : pct >= 50 ? "🌟" : "💪";
     return (
-      <div className="max-w-md mx-auto text-center bg-white rounded-3xl shadow-lg p-8">
-        <h2 className="text-3xl mb-3">🎤 Speaking Test Done!</h2>
-        <p className="text-gray-700 mb-6">Score: {score}/{quizWords.length}</p>
-        <Button className="bg-purple-500 text-white w-full rounded-xl mb-4"
-          onClick={() => window.location.reload()}>
-          🔁 फिर से
-        </Button>
-        <Button variant="outline" className="w-full rounded-xl" onClick={onBack}>
-          ⬅️ वापस
-        </Button>
-      </div>
+      <motion.div
+        className="max-w-md mx-auto"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
+          <motion.div
+            className="text-7xl mb-3"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.6 }}
+          >
+            {trophy}
+          </motion.div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">Speaking Test Done! 🎤</h2>
+          <p className="text-gray-500 mb-2">Score: <span className="font-bold text-purple-600">{score}/{quizWords.length}</span></p>
+          <p className="text-sm text-gray-400 mb-5">Accuracy: {pct}%</p>
+
+          {/* Performance breakdown */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            {responses.map((r: any, i: number) => (
+              <div key={i} className={`rounded-xl p-3 text-sm font-medium ${
+                r.success ? "bg-green-50 border border-green-200 text-green-800"
+                          : "bg-red-50 border border-red-200 text-red-800"
+              }`}>
+                {r.success ? "✅" : "❌"} {r.word}
+                {!r.success && r.heard && (
+                  <p className="text-xs opacity-60 mt-1 font-normal">बोला: "{r.heard}"</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Save status */}
+          {saveStatus === "saving" && (
+            <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm animate-pulse">
+              💾 Saving your progress...
+            </div>
+          )}
+          {saveStatus === "saved" && (
+            <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+              ✅ Progress saved to your account!
+            </div>
+          )}
+          {saveStatus === "login_required" && (
+            <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+              <p className="font-semibold text-sm mb-2">🔒 Login to save your progress!</p>
+              <p className="text-xs text-amber-600 mb-3">Your result is ready — just log in and it will be saved automatically.</p>
+              <Button
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm"
+                onClick={() => window.location.href = "/login"}
+              >
+                Login & Save 🚀
+              </Button>
+            </div>
+          )}
+          {saveError && (
+            <p className="text-xs text-red-500 mb-4">⚠️ {saveError}</p>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={onBack}>
+              ⬅️ वापस
+            </Button>
+            <Button
+              className="flex-1 bg-purple-500 hover:bg-purple-600 text-white rounded-xl"
+              onClick={() => window.location.reload()}
+            >
+              🔁 फिर से
+            </Button>
+          </div>
+        </div>
+      </motion.div>
     );
   }
 
   // ── Speaking UI ───────────────────────────────
   return (
     <motion.div className="max-w-lg mx-auto pb-8">
+
+      {/* Adaptive badge */}
+      {wordsAdaptive && (
+        <div className="flex justify-center mb-3">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold border border-purple-200">
+            🧠 Personalised quiz — based on your weak sounds
+          </span>
+        </div>
+      )}
 
       {/* Progress dots */}
       <div className="flex justify-center gap-2 mb-4">
@@ -709,6 +861,7 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       {/* Word card */}
       <div className="bg-white rounded-3xl shadow-lg p-6 mb-4">
         <h2 className="text-xl text-center font-bold mb-6">यह शब्द बोलो 🎤</h2>
+
         <div className="text-center mb-6">
           <motion.div key={word.word} className="text-8xl mb-3"
             animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
@@ -784,6 +937,12 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
       <AnimatePresence>
         {locked && !aiFeedbackLoading && (
           <motion.div key="ai-done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+
+            {aiError && (
+              <div className="mb-4 p-3 rounded-xl border border-red-200 bg-red-50">
+                <p className="text-sm text-red-700">⚠️ {aiError}</p>
+              </div>
+            )}
 
             {/* AI Coach — each line as its own coloured point */}
             {aiFeedback && (() => {

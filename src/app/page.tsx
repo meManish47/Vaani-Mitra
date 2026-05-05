@@ -1,57 +1,43 @@
 "use client";
 import React, { useState, useEffect } from "react";
 // import { Link } from 'react-router-dom';
-// import { createPageUrl } from '@/utils';
-// import { base44 } from '@/api/base44Client';
-// import { useQuery } from '@tanstack/react-query';
 import { motion } from "framer-motion";
 import { BookOpen, Brain, TrendingUp, Star, Zap, Trophy } from "lucide-react";
 import Mascot from "@/app/components/shared/Mascot";
 import ProgressBar from "@/app/components/shared/ProgressBar";
 import Link from "next/link";
+import api from "@/lib/apiClient";
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
+  const [progress, setProgress] = useState<any>(null);
 
-  // useEffect(() => {
-  //   const loadUser = async () => {
-  //     try {
-  //       const userData = await base44.auth.me();
-  //       setUser(userData);
-  //     } catch (e) {
-  //       // User not logged in
-  //     }
-  //   };
-  //   loadUser();
-  // }, []);
-
-  // const { data: progress } = useQuery({
-  //   queryKey: ['userProgress', user?.id],
-  //   queryFn: async () => {
-  //     if (!user) return null;
-  //     const progressList = await base44.entities.UserProgress.filter({ user_id: user.id });
-  //     return progressList[0] || null;
-  //   },
-  //   enabled: !!user,
-  // });
-  const progress = {
-    total_stars: 5,
-    current_streak: 3,
-    level: 1,
-    completed_letters: Array(20).fill(0),
-    completed_words: Array(10).fill(0),
-    completed_sentences: Array(5).fill(0),
-  };
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [userRes, dashRes] = await Promise.allSettled([
+          api.get("/api/users/current-user"),
+          api.get("/api/dashboard"),
+        ]);
+        if (userRes.status === "fulfilled") setUser(userRes.value.data.user);
+        if (dashRes.status === "fulfilled") setProgress(dashRes.value.data);
+      } catch (e) {
+        // not logged in — no stats shown
+      }
+    }
+    fetchData();
+  }, []);
 
   const cards = [
     {
       title: "Start Learning",
+
       description: "Practice Hindi letters, words & sentences",
       icon: BookOpen,
       color: "from-green-400 to-emerald-500",
       bgColor: "bg-green-50",
       emoji: "📚",
-      page: "Characters",
+      href: "/user/characters",
     },
     {
       title: "Take a Quiz",
@@ -60,7 +46,7 @@ export default function Home() {
       color: "from-purple-400 to-purple-600",
       bgColor: "bg-purple-50",
       emoji: "🧠",
-      page: "Quiz",
+      href: "/user/startquiz",
     },
     {
       title: "Your Progress",
@@ -69,7 +55,7 @@ export default function Home() {
       color: "from-orange-400 to-orange-500",
       bgColor: "bg-orange-50",
       emoji: "📊",
-      page: "Profile",
+      href: "/profile",
     },
   ];
 
@@ -97,7 +83,7 @@ export default function Home() {
             size="large"
             message={
               user
-                ? `Hi ${user || "Friend"}! ${randomGreeting}`
+                ? `Hi ${user.username || "Friend"}! ${randomGreeting}`
                 : randomGreeting
             }
             mood="happy"
@@ -125,34 +111,33 @@ export default function Home() {
               Your friendly AI helper for learning Hindi speech! 🎤
             </motion.p>
 
-            {/* Quick Stats */}
-            {progress && (
-              <motion.div
-                className="mt-6 flex flex-wrap justify-center md:justify-start gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  <span className="font-bold text-gray-700">
-                    {progress.total_stars || 0} Stars
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
-                  <Zap className="w-5 h-5 text-orange-500" />
-                  <span className="font-bold text-gray-700">
-                    {progress.current_streak || 0} Day Streak
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
-                  <Trophy className="w-5 h-5 text-purple-500" />
-                  <span className="font-bold text-gray-700">
-                    Level {progress.level || 1}
-                  </span>
-                </div>
-              </motion.div>
-            )}
+              {progress && (
+                <motion.div
+                  className="mt-6 flex flex-wrap justify-center md:justify-start gap-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <span className="font-bold text-gray-700">
+                      {progress.totalStars ?? 0} Stars
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
+                    <Zap className="w-5 h-5 text-orange-500" />
+                    <span className="font-bold text-gray-700">
+                      {progress.streak ?? 0} Day Streak
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
+                    <Trophy className="w-5 h-5 text-purple-500" />
+                    <span className="font-bold text-gray-700">
+                      Level {progress.level ?? 1}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
           </div>
         </div>
       </div>
@@ -160,7 +145,7 @@ export default function Home() {
       {/* Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {cards.map((card, index) => (
-          <Link key={card.title} href={`/${card.page.toLowerCase()}`}>
+          <Link key={card.title} href={card.href}>
             <motion.div
               className={`${card.bgColor} rounded-3xl p-6 cursor-pointer border-2 border-transparent hover:border-white transition-all h-full`}
               initial={{ opacity: 0, y: 30 }}
@@ -206,21 +191,21 @@ export default function Home() {
 
           <div className="space-y-6">
             <ProgressBar
-              current={progress.completed_letters?.length || 0}
-              total={60}
-              label="Letters Mastered"
+              current={progress.listeningSessions ?? 0}
+              total={30}
+              label="Listening Quizzes Done"
               color="blue"
             />
             <ProgressBar
-              current={progress.completed_words?.length || 0}
-              total={74}
-              label="Words Learned"
+              current={progress.speakingSessions ?? 0}
+              total={30}
+              label="Speaking Quizzes Done"
               color="green"
             />
             <ProgressBar
-              current={progress.completed_sentences?.length || 0}
-              total={40}
-              label="Sentences Practiced"
+              current={progress.accuracy ?? 0}
+              total={100}
+              label={`Overall Accuracy (${progress.accuracy ?? 0}%)`}
               color="purple"
             />
           </div>

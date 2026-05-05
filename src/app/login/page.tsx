@@ -18,6 +18,41 @@ export default function LoginPage() {
       setLoading(true);
       const response = await api.post("/api/users/login", user);
       console.log("Login success", response.data);
+
+      // ── Auto-save any pending quiz data from before login ──
+      try {
+        const raw = sessionStorage.getItem("pendingQuizData");
+        if (raw) {
+          const pending = JSON.parse(raw);
+          const endpoint =
+            pending.type === "speaking"
+              ? "/api/quiz/save-speaking"
+              : "/api/hindi-analysis";
+
+          if (pending.type === "speaking") {
+            await api.post(endpoint, {
+              score: pending.score,
+              total: pending.total,
+              responses: pending.responses,
+              weakPhonemes: [],
+              feedback: "",
+            });
+          } else {
+            // listening — re-run analysis which also saves
+            await api.post(endpoint, {
+              score: pending.score,
+              total: pending.total,
+              detailed: pending.responses,
+            });
+          }
+          sessionStorage.removeItem("pendingQuizData");
+          console.log("✅ Pending quiz data saved after login");
+        }
+      } catch (saveErr) {
+        console.warn("Could not auto-save pending quiz:", saveErr);
+        sessionStorage.removeItem("pendingQuizData");
+      }
+
       router.push("/profile");
     } catch (error) {
       alert("Invalid credentials ❌ Try again!");
@@ -26,6 +61,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-100 via-pink-100 to-sky-100 px-4">

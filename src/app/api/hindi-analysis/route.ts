@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import UserProgress from "@/models/statsModel";
-import PhonemeStats from "@/models/phonemeModel";
+import QuizSession from "@/models/statsModel";
 import { connect } from "@/dbConfig/dbConfig";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 
@@ -12,11 +11,11 @@ export async function POST(req: NextRequest) {
     await connect();
     const body = await req.json();
     const { score, total, detailed } = body;
-    const userId = await getDataFromToken(req);
-    // console.log("User ID from token:", userId);
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+
+    // Auth is optional — guests still get AI feedback, just no DB save
+    const userId = getDataFromToken(req);
+    const isLoggedIn = !!userId;
+
     const prompt = `
 You are a Hindi speech therapist AI.
 Analyze the listening quiz results:
@@ -36,7 +35,7 @@ Return STRICT JSON only, no \`\`\`, no comments:
     const result = await model.generateContent(prompt);
     let text = result.response.text().trim();
 
-    // 🧹 Clean unwanted markdown wrappers before JSON.parse
+    // Clean unwanted markdown wrappers before JSON.parse
     text = text
       .replace(/```json/gi, "")
       .replace(/```/g, "")
@@ -50,37 +49,34 @@ Return STRICT JSON only, no \`\`\`, no comments:
     } catch (error) {
       console.error("❌ JSON Parse Failed. RAW AI Response:", text);
       return NextResponse.json(
-        {
-          error: "Invalid AI JSON returned",
-          raw: text,
-        },
+        { error: "Invalid AI JSON returned", raw: text },
         { status: 500 }
       );
     }
 
     // Ensure fields always exist
-    analysis.feedback =
-      analysis.feedback || "Great effort! Keep practicing. 😊";
+    analysis.feedback = analysis.feedback || "Great effort! Keep practicing. 😊";
     analysis.weakPhonemes = analysis.weakPhonemes || [];
     analysis.recommendedWords = analysis.recommendedWords || [];
 
-    // Save progress to MongoDB
-    const progress = await UserProgress.create({
-      userId, // FIXED
-      quizType: "listening",
-      score,
-      total,
-      words: detailed,
-      weakPhonemes: analysis.weakPhonemes,
-    });
-
-    // Update phoneme weakness stats
-    for (const p of analysis.weakPhonemes) {
-      await PhonemeStats.findOneAndUpdate(
-        { userId, phoneme: p },
-        { $inc: { attempts: 1 } },
-        { upsert: true, strict: false }
-      );
+    // Only save to DB if the user is logged in
+    let progressId = null;
+    if (isLoggedIn) {
+      const session = await QuizSession.create({
+        userId,
+        quizType: "listening",
+        score,
+        total,
+        words: (detailed || []).map((d: any) => ({
+          word: d.word,
+          heard: d.selected,
+          correct: d.correct,
+          phonemes: [],
+        })),
+        weakPhonemes: analysis.weakPhonemes,
+        feedback: analysis.feedback,
+      });
+      progressId = session._id;
     }
 
     return NextResponse.json(
@@ -88,7 +84,9 @@ Return STRICT JSON only, no \`\`\`, no comments:
         feedback: analysis.feedback,
         weakPhonemes: analysis.weakPhonemes,
         recommendedWords: analysis.recommendedWords,
-        progressId: progress._id,
+        progressId,
+        saved: isLoggedIn,
+        requiresLogin: !isLoggedIn,
       },
       { status: 200 }
     );
