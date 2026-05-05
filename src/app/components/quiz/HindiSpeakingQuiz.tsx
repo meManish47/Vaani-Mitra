@@ -474,33 +474,8 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     }
   }, []);
 
-  // ── Evaluate ──────────────────────────────────
-  const runEvaluate = useCallback((heard: string[]) => {
-    const word = getCurrentWord();
-    addLog(`runEvaluate word="${word.word}" heard=${JSON.stringify(heard)}`);
-
-    const { match, distance, feedback } = getPronunciationFeedback(
-      heard, word.word, word.pronunciation
-    );
-
-    addLog(`result: match=${match} distance=${distance} feedback="${feedback}"`);
-
-    if (match) setScore((s) => s + 1);
-    setResult({ success: match, message: feedback, heard: heard[0] || "" });
-    setResponses((p) => [...p, { word: word.word, heard: heard[0] || "", success: match }]);
-    setLocked(true);
-
-    callAIAnalysis({
-      word,
-      heard: heard[0] || "",
-      allHeard: heard,
-      success: match,
-      levenshteinDistance: distance,
-    });
-  }, [callAIAnalysis]);
-
-  // ── AI call ───────────────────────────────────
-  const callAIAnalysis = async ({ word, heard, allHeard, success, levenshteinDistance }) => {
+  // ── AI call (must be declared BEFORE runEvaluate to avoid TDZ crash) ──
+  const callAIAnalysis = useCallback(async ({ word, heard, allHeard, success, levenshteinDistance }: any) => {
     addLog(`AI call start — word="${word.word}" heard="${heard}" success=${success}`);
     setAiFeedbackLoading(true);
     setAiFeedback(null);
@@ -545,7 +520,33 @@ export default function HindiSpeakingQuiz({ onComplete, onBack }) {
     } finally {
       setAiFeedbackLoading(false);
     }
-  };
+  }, []);
+
+  // ── Evaluate ──────────────────────────────────
+  const runEvaluate = useCallback((heard: string[]) => {
+    const word = getCurrentWord();
+    addLog(`runEvaluate word="${word.word}" heard=${JSON.stringify(heard)}`);
+
+    const { match, distance, feedback } = getPronunciationFeedback(
+      heard, word.word, word.pronunciation
+    );
+
+    addLog(`result: match=${match} distance=${distance} feedback="${feedback}"`);
+
+    if (match) setScore((s) => s + 1);
+    setResult({ success: match, message: feedback, heard: heard[0] || "" });
+    setResponses((p) => [...p, { word: word.word, heard: heard[0] || "", success: match }]);
+    setLocked(true);
+
+    callAIAnalysis({
+      word,
+      heard: heard[0] || "",
+      allHeard: heard,
+      success: match,
+      levenshteinDistance: distance,
+    });
+  }, [callAIAnalysis]);
+
 
   // ── Try Again (same word, fresh attempt) ──────
   const tryAgain = () => {
